@@ -1,0 +1,1 @@
+ALTER TABLE "Ficha" ADD COLUMN IF NOT EXISTS "hora_cita" TEXT;

@@ -1,0 +1,120 @@
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.create-grupo-modal {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.18);
+  width: auto;
+  min-width: 480px;
+  max-width: 640px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin: 0 24px;
+}
+
+.modal-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 32px 20px;
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+  flex-shrink: 0;
+}
+
+.modal-header h2 {
+  color: var(--primary-color, #2563eb);
+  font-size: 26px;
+  font-weight: 700;
+  margin: 0;
+  text-align: center;
+  letter-spacing: -0.02em;
+}
+
+.close-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: none;
+  border: none;
+  font-size: 28px;
+  cursor: pointer;
+  color: var(--text-secondary, #666);
+  padding: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+  line-height: 1;
+}
+
+.close-btn:hover {
+  background-color: rgba(37, 99, 235, 0.08);
+  color: var(--primary-color, #2563eb);
+  transform: scale(1.05);
+}
+
+.modal-content {
+  padding: 32px;
+  overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  background: #f8fafc;
+}
+
+.modal-content .create-grupo-container {
+  padding: 0 !important;
+  margin: 0 auto !important;
+  max-width: 520px !important;
+  width: 100% !important;
+  box-sizing: border-box;
+}
+
+.modal-content .create-grupo-container h2 {
+  display: none;
+}
+
+.modal-content .info-text {
+  margin-bottom: 1.5rem;
+}
+
+.modal-content .grupo-form {
+  padding: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  width: 100% !important;
+  box-sizing: border-box;
+}
+
+.modal-content .form-group,
+.modal-content .form-group input,
+.modal-content .form-group select,
+.modal-content .form-group textarea {
+  width: 100% !important;
+  box-sizing: border-box;
+}
+

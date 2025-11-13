@@ -1,0 +1,40 @@
+.notificaciones-badge-btn {
+  position: relative;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s;
+}
+
+.notificaciones-badge-btn:hover {
+  transform: scale(1.1);
+}
+
+.notificaciones-icon {
+  font-size: 1.5rem;
+}
+
+.notificaciones-contador {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: var(--danger-color, #dc3545);
+  color: white;
+  border-radius: 50%;
+  min-width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0 0.25rem;
+  border: 2px solid white;
+  transform: translate(25%, -25%);
+}
+
+

@@ -1,0 +1,410 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:modeler="http://camunda.org/schema/modeler/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.0.0" modeler:executionPlatform="Camunda Platform" modeler:executionPlatformVersion="7.19.0">
+  <bpmn:process id="procesoTramiteGrupos" name="Proceso de Trámite por Grupos" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1" name="Inicio de Trámite">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    
+    <!-- External Task: Crear Trámite -->
+    <bpmn:serviceTask id="Task_CrearTramite" name="Crear Trámite en Backend" camunda:type="external" camunda:topic="crear-tramite">
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="id_consultante">${id_consultante}</camunda:inputParameter>
+          <camunda:inputParameter name="id_grupo">${id_grupo}</camunda:inputParameter>
+          <camunda:inputParameter name="num_carpeta">${num_carpeta}</camunda:inputParameter>
+          <camunda:inputParameter name="observaciones">${observaciones}</camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <!-- Notificación inicial -->
+    <bpmn:serviceTask id="Task_NotificacionInicial" name="Enviar Notificación Inicial" camunda:type="external" camunda:topic="enviar-notificacion">
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="id_tramite">${id_tramite}</camunda:inputParameter>
+          <camunda:inputParameter name="tipo_notificacion">inicio</camunda:inputParameter>
+          <camunda:inputParameter name="mensaje">Se ha iniciado un nuevo trámite con número de carpeta ${num_carpeta}</camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <!-- Tarea de Usuario: Revisión Inicial -->
+    <bpmn:userTask id="Task_RevisionInicial" name="Revisión Inicial del Trámite" camunda:candidateGroups="${grupoNombre}">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <!-- Gateway: Decisión sobre el estado del trámite -->
+    <bpmn:exclusiveGateway id="Gateway_EstadoTramite" name="Estado del Trámite">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_EnTramite</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Pendiente</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Finalizado</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Desistido</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    
+    <!-- Flujo: En Trámite (Estado Activo) -->
+    <bpmn:sequenceFlow id="Flow_EnTramite" name="En Trámite" sourceRef="Gateway_EstadoTramite" targetRef="Task_TrabajoActivo">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${estado == 'en_tramite'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    
+    <bpmn:userTask id="Task_TrabajoActivo" name="Trabajo Activo del Grupo" camunda:candidateGroups="${grupoNombre}">
+      <bpmn:documentation>Los estudiantes y docentes del grupo trabajan activamente en el trámite. Pueden realizar actuaciones, subir documentos y cambiar el estado.</bpmn:documentation>
+      <bpmn:incoming>Flow_EnTramite</bpmn:incoming>
+      <bpmn:incoming>Flow_Reanudar</bpmn:incoming>
+      <bpmn:incoming>Flow_Reactivar</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <!-- Gateway: Decisión desde En Trámite -->
+    <bpmn:exclusiveGateway id="Gateway_DesdeEnTramite" name="¿Qué acción tomar?">
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+      <bpmn:outgoing>Flow_7</bpmn:outgoing>
+      <bpmn:outgoing>Flow_8</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    
+    <!-- Flujo: Finalizado -->
+    <bpmn:sequenceFlow id="Flow_Finalizado" name="Finalizado" sourceRef="Gateway_EstadoTramite" targetRef="Task_Finalizado">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${estado == 'finalizado'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    
+    <bpmn:sequenceFlow id="Flow_6" name="Finalizar" sourceRef="Gateway_DesdeEnTramite" targetRef="Task_Finalizado">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${estado == 'finalizado'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    
+    <bpmn:userTask id="Task_Finalizado" name="Trámite Finalizado" camunda:candidateGroups="${grupoNombre}">
+      <bpmn:documentation>El trámite ha sido completado. Puede reanudarse si es necesario.</bpmn:documentation>
+      <bpmn:incoming>Flow_Finalizado</bpmn:incoming>
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_9</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <!-- Gateway: Decisión desde Finalizado -->
+    <bpmn:exclusiveGateway id="Gateway_DesdeFinalizado" name="¿Reanudar?">
+      <bpmn:incoming>Flow_9</bpmn:incoming>
+      <bpmn:outgoing>Flow_Reanudar</bpmn:outgoing>
+      <bpmn:outgoing>Flow_10</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    
+    <bpmn:sequenceFlow id="Flow_Reanudar" name="Reanudar" sourceRef="Gateway_DesdeFinalizado" targetRef="Task_TrabajoActivo">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${estado == 'en_tramite'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    
+    <!-- Flujo: Pendiente -->
+    <bpmn:sequenceFlow id="Flow_Pendiente" name="Pendiente" sourceRef="Gateway_EstadoTramite" targetRef="Task_Pendiente">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${estado == 'pendiente'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    
+    <bpmn:sequenceFlow id="Flow_7" name="Marcar Pendiente" sourceRef="Gateway_DesdeEnTramite" targetRef="Task_Pendiente">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${estado == 'pendiente'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    
+    <bpmn:userTask id="Task_Pendiente" name="Trámite Pendiente - Falta Información" camunda:candidateGroups="${grupoNombre}">
+      <bpmn:documentation>El trámite está pendiente porque falta información del consultante. Se requiere motivo de cierre.</bpmn:documentation>
+      <bpmn:incoming>Flow_Pendiente</bpmn:incoming>
+      <bpmn:incoming>Flow_7</bpmn:incoming>
+      <bpmn:outgoing>Flow_11</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <!-- Gateway: Decisión desde Pendiente -->
+    <bpmn:exclusiveGateway id="Gateway_DesdePendiente" name="¿Continuar?">
+      <bpmn:incoming>Flow_11</bpmn:incoming>
+      <bpmn:outgoing>Flow_12</bpmn:outgoing>
+      <bpmn:outgoing>Flow_13</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    
+    <bpmn:sequenceFlow id="Flow_12" name="Continuar" sourceRef="Gateway_DesdePendiente" targetRef="Task_TrabajoActivo">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${estado == 'en_tramite'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    
+    <!-- Flujo: Desistido -->
+    <bpmn:sequenceFlow id="Flow_Desistido" name="Desistido" sourceRef="Gateway_EstadoTramite" targetRef="Task_Desistido">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${estado == 'desistido'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    
+    <bpmn:sequenceFlow id="Flow_8" name="Desistir" sourceRef="Gateway_DesdeEnTramite" targetRef="Task_Desistido">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${estado == 'desistido'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    
+    <bpmn:sequenceFlow id="Flow_13" name="Desistir desde Pendiente" sourceRef="Gateway_DesdePendiente" targetRef="Task_Desistido">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${estado == 'desistido'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    
+    <bpmn:sequenceFlow id="Flow_10" name="Desistir desde Finalizado" sourceRef="Gateway_DesdeFinalizado" targetRef="Task_Desistido">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${estado == 'desistido'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    
+    <bpmn:userTask id="Task_Desistido" name="Trámite Desistido" camunda:candidateGroups="${grupoNombre}">
+      <bpmn:documentation>El consultante ha desistido del trámite. Se requiere motivo de cierre. Puede reactivarse si es necesario.</bpmn:documentation>
+      <bpmn:incoming>Flow_Desistido</bpmn:incoming>
+      <bpmn:incoming>Flow_8</bpmn:incoming>
+      <bpmn:incoming>Flow_13</bpmn:incoming>
+      <bpmn:incoming>Flow_10</bpmn:incoming>
+      <bpmn:outgoing>Flow_14</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <!-- Gateway: Decisión desde Desistido -->
+    <bpmn:exclusiveGateway id="Gateway_DesdeDesistido" name="¿Reactivar?">
+      <bpmn:incoming>Flow_14</bpmn:incoming>
+      <bpmn:outgoing>Flow_Reactivar</bpmn:outgoing>
+      <bpmn:outgoing>Flow_15</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    
+    <bpmn:sequenceFlow id="Flow_Reactivar" name="Reactivar" sourceRef="Gateway_DesdeDesistido" targetRef="Task_TrabajoActivo">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${estado == 'en_tramite'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    
+    <!-- External Task: Actualizar Estado -->
+    <bpmn:serviceTask id="Task_ActualizarEstado" name="Actualizar Estado en Backend" camunda:type="external" camunda:topic="actualizar-estado">
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="id_tramite">${id_tramite}</camunda:inputParameter>
+          <camunda:inputParameter name="estado">${estado}</camunda:inputParameter>
+          <camunda:inputParameter name="observaciones">${observaciones}</camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_15</bpmn:incoming>
+      <bpmn:outgoing>Flow_16</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <!-- Notificación de cambio de estado -->
+    <bpmn:serviceTask id="Task_NotificacionCambioEstado" name="Notificar Cambio de Estado" camunda:type="external" camunda:topic="enviar-notificacion">
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="id_tramite">${id_tramite}</camunda:inputParameter>
+          <camunda:inputParameter name="tipo_notificacion">cambio_estado</camunda:inputParameter>
+          <camunda:inputParameter name="mensaje">El trámite ${num_carpeta} ha cambiado a estado: ${estado}</camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_16</bpmn:incoming>
+      <bpmn:outgoing>Flow_17</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <!-- End Event -->
+    <bpmn:endEvent id="EndEvent_1" name="Fin del Trámite">
+      <bpmn:incoming>Flow_17</bpmn:incoming>
+    </bpmn:endEvent>
+    
+    <!-- Sequence Flows -->
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_CrearTramite" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_CrearTramite" targetRef="Task_NotificacionInicial" />
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_NotificacionInicial" targetRef="Task_RevisionInicial" />
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="Task_RevisionInicial" targetRef="Gateway_EstadoTramite" />
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="Task_TrabajoActivo" targetRef="Gateway_DesdeEnTramite" />
+    <bpmn:sequenceFlow id="Flow_9" sourceRef="Task_Finalizado" targetRef="Gateway_DesdeFinalizado" />
+    <bpmn:sequenceFlow id="Flow_11" sourceRef="Task_Pendiente" targetRef="Gateway_DesdePendiente" />
+    <bpmn:sequenceFlow id="Flow_14" sourceRef="Task_Desistido" targetRef="Gateway_DesdeDesistido" />
+    <bpmn:sequenceFlow id="Flow_15" sourceRef="Gateway_DesdeDesistido" targetRef="Task_ActualizarEstado" />
+    <bpmn:sequenceFlow id="Flow_16" sourceRef="Task_ActualizarEstado" targetRef="Task_NotificacionCambioEstado" />
+    <bpmn:sequenceFlow id="Flow_17" sourceRef="Task_NotificacionCambioEstado" targetRef="EndEvent_1" />
+  </bpmn:process>
+  
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="procesoTramiteGrupos">
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="StartEvent_1">
+        <dc:Bounds x="179" y="99" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="162" y="142" width="71" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="_BPMNShape_Task_CrearTramite" bpmnElement="Task_CrearTramite">
+        <dc:Bounds x="270" y="77" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="_BPMNShape_Task_NotificacionInicial" bpmnElement="Task_NotificacionInicial">
+        <dc:Bounds x="425" y="77" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="_BPMNShape_Task_RevisionInicial" bpmnElement="Task_RevisionInicial">
+        <dc:Bounds x="580" y="77" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="_BPMNShape_Gateway_EstadoTramite" bpmnElement="Gateway_EstadoTramite" isMarkerVisible="true">
+        <dc:Bounds x="735" y="92" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="720" y="60" width="80" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="_BPMNShape_Task_TrabajoActivo" bpmnElement="Task_TrabajoActivo">
+        <dc:Bounds x="840" y="77" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="_BPMNShape_Gateway_DesdeEnTramite" bpmnElement="Gateway_DesdeEnTramite" isMarkerVisible="true">
+        <dc:Bounds x="995" y="92" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="_BPMNShape_Task_Finalizado" bpmnElement="Task_Finalizado">
+        <dc:Bounds x="1100" y="77" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="_BPMNShape_Gateway_DesdeFinalizado" bpmnElement="Gateway_DesdeFinalizado" isMarkerVisible="true">
+        <dc:Bounds x="1255" y="92" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="_BPMNShape_Task_Pendiente" bpmnElement="Task_Pendiente">
+        <dc:Bounds x="840" y="250" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="_BPMNShape_Gateway_DesdePendiente" bpmnElement="Gateway_DesdePendiente" isMarkerVisible="true">
+        <dc:Bounds x="995" y="265" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="_BPMNShape_Task_Desistido" bpmnElement="Task_Desistido">
+        <dc:Bounds x="1100" y="250" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="_BPMNShape_Gateway_DesdeDesistido" bpmnElement="Gateway_DesdeDesistido" isMarkerVisible="true">
+        <dc:Bounds x="1255" y="265" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="_BPMNShape_Task_ActualizarEstado" bpmnElement="Task_ActualizarEstado">
+        <dc:Bounds x="1355" y="250" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="_BPMNShape_Task_NotificacionCambioEstado" bpmnElement="Task_NotificacionCambioEstado">
+        <dc:Bounds x="1510" y="250" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="_BPMNShape_EndEvent_2" bpmnElement="EndEvent_1">
+        <dc:Bounds x="1665" y="265" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1655" y="308" width="56" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      
+      <!-- Sequence Flow Edges -->
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="215" y="117" />
+        <di:waypoint x="270" y="117" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="370" y="117" />
+        <di:waypoint x="425" y="117" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint x="525" y="117" />
+        <di:waypoint x="580" y="117" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <di:waypoint x="680" y="117" />
+        <di:waypoint x="735" y="117" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_EnTramite_di" bpmnElement="Flow_EnTramite">
+        <di:waypoint x="785" y="117" />
+        <di:waypoint x="840" y="117" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
+        <di:waypoint x="940" y="117" />
+        <di:waypoint x="995" y="117" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
+        <di:waypoint x="1020" y="142" />
+        <di:waypoint x="1100" y="117" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_Finalizado_di" bpmnElement="Flow_Finalizado">
+        <di:waypoint x="760" y="92" />
+        <di:waypoint x="1150" y="92" />
+        <di:waypoint x="1150" y="117" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_9_di" bpmnElement="Flow_9">
+        <di:waypoint x="1200" y="117" />
+        <di:waypoint x="1255" y="117" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_Reanudar_di" bpmnElement="Flow_Reanudar">
+        <di:waypoint x="1280" y="92" />
+        <di:waypoint x="890" y="92" />
+        <di:waypoint x="890" y="77" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_Pendiente_di" bpmnElement="Flow_Pendiente">
+        <di:waypoint x="760" y="142" />
+        <di:waypoint x="890" y="142" />
+        <di:waypoint x="890" y="330" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_7_di" bpmnElement="Flow_7">
+        <di:waypoint x="1020" y="167" />
+        <di:waypoint x="890" y="167" />
+        <di:waypoint x="890" y="330" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_11_di" bpmnElement="Flow_11">
+        <di:waypoint x="940" y="290" />
+        <di:waypoint x="995" y="290" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_12_di" bpmnElement="Flow_12">
+        <di:waypoint x="1020" y="265" />
+        <di:waypoint x="890" y="265" />
+        <di:waypoint x="890" y="157" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_Desistido_di" bpmnElement="Flow_Desistido">
+        <di:waypoint x="760" y="167" />
+        <di:waypoint x="1150" y="167" />
+        <di:waypoint x="1150" y="290" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_8_di" bpmnElement="Flow_8">
+        <di:waypoint x="1020" y="192" />
+        <di:waypoint x="1150" y="192" />
+        <di:waypoint x="1150" y="290" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_13_di" bpmnElement="Flow_13">
+        <di:waypoint x="1020" y="315" />
+        <di:waypoint x="1150" y="315" />
+        <di:waypoint x="1150" y="330" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_10_di" bpmnElement="Flow_10">
+        <di:waypoint x="1280" y="142" />
+        <di:waypoint x="1150" y="142" />
+        <di:waypoint x="1150" y="250" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_14_di" bpmnElement="Flow_14">
+        <di:waypoint x="1200" y="290" />
+        <di:waypoint x="1255" y="290" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_Reactivar_di" bpmnElement="Flow_Reactivar">
+        <di:waypoint x="1280" y="265" />
+        <di:waypoint x="890" y="265" />
+        <di:waypoint x="890" y="157" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_15_di" bpmnElement="Flow_15">
+        <di:waypoint x="1305" y="290" />
+        <di:waypoint x="1355" y="290" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_16_di" bpmnElement="Flow_16">
+        <di:waypoint x="1455" y="290" />
+        <di:waypoint x="1510" y="290" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_17_di" bpmnElement="Flow_17">
+        <di:waypoint x="1610" y="290" />
+        <di:waypoint x="1665" y="283" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
+
