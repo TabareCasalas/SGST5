@@ -51,64 +51,13 @@ services:
       timeout: 10s
       retries: 3
 
-
-  # Camunda BPM Platform
-  camunda:
-    image: camunda/camunda-bpm-platform:run-latest
-    container_name: sgst_camunda
-    restart: unless-stopped
-    environment:
-      DB_DRIVER: org.postgresql.Driver
-      DB_URL: jdbc:postgresql://postgres:5432/camunda_db
-      DB_USERNAME: ${POSTGRES_USER:-sgst_user}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:-sgst_password}
-      WAIT_FOR: postgres:5432
-    ports:
-      - "${CAMUNDA_PORT:-8081}:8080"
-    volumes:
-      - camunda_data:/camunda/webapps
-      - ./camunda/diagrams:/camunda/diagrams
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - sgst_network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/engine-rest/engine"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-
-  # Orchestrator - Comunica Camunda con el Backend
-  orchestrator:
-    build:
-      context: ./orchestrator
-      dockerfile: Dockerfile
-    container_name: sgst_orchestrator
-    restart: unless-stopped
-    environment:
-      ORCHESTRATOR_PORT: ${ORCHESTRATOR_PORT:-3002}
-      CAMUNDA_URL: http://camunda:8080/engine-rest
-      BACKEND_URL: http://backend:3001
-      NODE_ENV: ${NODE_ENV:-production}
-    ports:
-      - "${ORCHESTRATOR_PORT:-3002}:3002"
-    depends_on:
-      - camunda
-      - backend
-    networks:
-      - sgst_network
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3002/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
   # Frontend React
   frontend:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://backend:3001/api}
     container_name: sgst_frontend
     restart: unless-stopped
     ports:
@@ -145,8 +94,6 @@ volumes:
   postgres_data:
     driver: local
   pgadmin_data:
-    driver: local
-  camunda_data:
     driver: local
 
 networks:

@@ -949,34 +949,6 @@ export const fichaController = {
         console.error('⚠️ Error al crear notificación para consultante (trámite iniciado exitosamente):', notifError);
       }
 
-      // Intentar iniciar proceso en Camunda (si está configurado)
-      try {
-        const { iniciarProcesoEnCamunda } = await import('../services/orchestratorService');
-        const processResult = await iniciarProcesoEnCamunda('procesoTramiteGrupos', {
-          id_tramite: tramite.id_tramite,
-          id_consultante: tramite.id_consultante,
-          id_grupo: tramite.id_grupo,
-          grupoNombre: `grupo_${ficha.grupo!.nombre}`,
-          num_carpeta: tramite.num_carpeta,
-          estado: 'en_tramite',
-          observaciones: tramite.observaciones || '',
-          validado: true,
-        });
-
-        // El estado ya es "en_tramite", solo actualizar el process_instance_id
-        await prisma.tramite.update({
-          where: { id_tramite: tramite.id_tramite },
-          data: {
-            process_instance_id: processResult.instanceId,
-          },
-        });
-
-        console.log(`🚀 Proceso iniciado en Camunda: ${processResult.instanceId}`);
-      } catch (error: any) {
-        console.error('⚠️  Error al iniciar proceso en Camunda:', error.message);
-        // No fallamos si Camunda falla
-      }
-
       // Obtener el trámite actualizado
       const tramiteActualizado = await prisma.tramite.findUnique({
         where: { id_tramite: tramite.id_tramite },

@@ -22,9 +22,6 @@ router.post('/', tramiteController.create);
 // Ruta: PATCH /api/tramites/:id
 router.patch('/:id', tramiteController.update);
 
-// Ruta: POST /api/tramites/:id/completar-tarea
-router.post('/:id/completar-tarea', tramiteController.completarTarea);
-
 // Ruta: POST /api/tramites/:id/aprobar
 router.post('/:id/aprobar', tramiteController.aprobarTramite);
 

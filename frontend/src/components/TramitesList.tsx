@@ -221,7 +221,12 @@ export function TramitesList() {
 
   const ejecutarCompletar = async (id: number, aprobado: boolean, razon?: string) => {
     try {
-      await ApiService.completarTarea(id, aprobado, razon);
+      // Actualizar el estado del trámite directamente
+      const nuevoEstado = aprobado ? 'finalizado' : 'desistido';
+      await ApiService.updateTramite(id, {
+        estado: nuevoEstado,
+        motivo_cierre: razon,
+      });
       await loadTramites();
       showToast(
         `Trámite ${aprobado ? 'aprobado' : 'rechazado'} exitosamente`,
@@ -519,12 +524,6 @@ export function TramitesList() {
                                 <strong>Motivo de Cierre</strong>
                                 <p>{tramite.motivo_cierre}</p>
                               </div>
-                            </div>
-                          )}
-                          {tramite.process_instance_id && (
-                            <div className="detail-item full-width">
-                              <strong>Proceso Camunda</strong>
-                              <p className="process-id">{tramite.process_instance_id}</p>
                             </div>
                           )}
                           {/* Botón para ver hoja de ruta (estudiantes y docentes) */}

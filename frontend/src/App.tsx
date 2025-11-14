@@ -276,12 +276,6 @@ function AppContent() {
             <a href="http://localhost:3001" target="_blank" rel="noopener noreferrer">
               📡 Backend API
             </a>
-            <a href="http://localhost:3002" target="_blank" rel="noopener noreferrer">
-              🎯 Orchestrator
-            </a>
-            <a href="http://localhost:8081" target="_blank" rel="noopener noreferrer">
-              ⚙️ Camunda BPM
-            </a>
             <a href="http://localhost:8080" target="_blank" rel="noopener noreferrer">
               🗄️ PgAdmin
             </a>

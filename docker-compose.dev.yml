@@ -1,4 +1,7 @@
-<<<<<<< Updated upstream
+# Docker Compose para desarrollo local
+# Este archivo excluye frontend y backend para correrlos localmente
+# Uso: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+
 version: '3.8'
 
 services:
@@ -37,64 +40,20 @@ services:
     volumes:
       - pgadmin_data_dev:/var/lib/pgadmin
 
-  # Camunda BPM Platform para desarrollo
-  camunda:
-    image: camunda/camunda-bpm-platform:run-latest
-    container_name: sgst_camunda_dev
-    restart: unless-stopped
-    environment:
-      DB_DRIVER: org.postgresql.Driver
-      DB_URL: jdbc:postgresql://postgres:5432/camunda_db
-      DB_USERNAME: sgst_user
-      DB_PASSWORD: sgst_password
-      WAIT_FOR: postgres:5432
-    ports:
-      - "8081:8080"
-    volumes:
-      - camunda_data_dev:/camunda/webapps
-      - ./camunda/diagrams:/camunda/diagrams
-    depends_on:
-      - postgres
-    networks:
-      - sgst_network_dev
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/engine-rest/engine"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-
-volumes:
-  postgres_data_dev:
-    driver: local
-  pgadmin_data_dev:
-    driver: local
-  camunda_data_dev:
-    driver: local
-
-networks:
-  sgst_network_dev:
-    driver: bridge
-
-
-
-=======
-# Docker Compose para desarrollo local
-# Este archivo excluye frontend y backend para correrlos localmente
-# Uso: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
-
-services:
+  # Excluir frontend y backend para desarrollo local
   frontend:
     profiles:
       - exclude  # Excluir este servicio
   backend:
     profiles:
       - exclude  # Excluir este servicio
->>>>>>> Stashed changes
 
+volumes:
+  postgres_data_dev:
+    driver: local
+  pgadmin_data_dev:
+    driver: local
 
-
-
-
-
-
-
+networks:
+  sgst_network_dev:
+    driver: bridge

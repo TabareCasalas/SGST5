@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
-import { iniciarProcesoEnCamunda } from '../services/orchestratorService';
 import { normalizeText } from '../utils/normalizeText';
 import { AuthRequest } from '../middleware/authMiddleware';
 import { NotificacionService } from '../utils/notificacionService';
@@ -285,37 +284,6 @@ export const tramiteController = {
         });
       }
 
-      // Solo iniciar proceso en Camunda si el trámite no es pendiente (es decir, si no fue creado por admin)
-      if (!esAdmin) {
-        try {
-          const processResult = await iniciarProcesoEnCamunda('procesoTramiteGrupos', {
-            id_tramite: tramite.id_tramite,
-            id_consultante: tramite.id_consultante,
-            id_grupo: tramite.id_grupo,
-            grupoNombre: `grupo_${grupo.nombre}`,
-            num_carpeta: tramite.num_carpeta,
-            estado: estadoInicial,
-            observaciones: tramite.observaciones || '',
-            validado: true,
-          });
-
-          // El estado ya es "en_tramite", solo actualizar el process_instance_id
-          await prisma.tramite.update({
-            where: { id_tramite: tramite.id_tramite },
-            data: {
-              process_instance_id: processResult.instanceId,
-            },
-          });
-
-          console.log(`🚀 Proceso iniciado en Camunda (procesoTramiteGrupos): ${processResult.instanceId}`);
-          console.log(`✅ Las tareas del BPMN están configuradas automáticamente con candidateGroup: grupo_${grupo.nombre}`);
-        } catch (error: any) {
-          console.error('⚠️  Error al iniciar proceso en Camunda:', error.message);
-          // No fallamos la creación del trámite si Camunda falla
-          // El trámite seguirá existiendo pero sin proceso
-        }
-      }
-
       // Obtener el trámite actualizado para devolverlo
       const tramiteActualizado = await prisma.tramite.findUnique({
         where: { id_tramite: tramite.id_tramite },
@@ -533,81 +501,6 @@ export const tramiteController = {
     }
   },
 
-  // Completar tarea manual (User Task) de Camunda
-  async completarTarea(req: Request, res: Response) {
-    try {
-      const { id } = req.params;
-      const { aprobado, observaciones, decision } = req.body;
-
-      // Obtener el trámite
-      const tramite = await prisma.tramite.findUnique({
-        where: { id_tramite: parseInt(id) },
-        include: {
-          consultante: { include: { usuario: true } },
-          grupo: true,
-        },
-      });
-
-      if (!tramite) {
-        return res.status(404).json({ error: 'Trámite no encontrado' });
-      }
-
-      if (!tramite.process_instance_id) {
-        return res.status(400).json({ error: 'Este trámite no tiene un proceso asociado en Camunda' });
-      }
-
-      // Preparar las variables para Camunda
-      const variables: Record<string, any> = {
-        aprobado: { value: aprobado, type: 'Boolean' },
-        decision: { value: decision || (aprobado ? 'aprobado' : 'rechazado'), type: 'String' },
-      };
-
-      if (observaciones) {
-        variables.observaciones = { value: observaciones, type: 'String' };
-      }
-
-      // Llamar al orchestrator para completar la tarea en Camunda
-      const orchestratorUrl = process.env.ORCHESTRATOR_URL || 'http://orchestrator:3002';
-      const axios = require('axios');
-      
-      try {
-        const response = await axios.post(
-          `${orchestratorUrl}/api/procesos/${tramite.process_instance_id}/completar-tarea`,
-          { variables }
-        );
-
-        // Actualizar el estado del trámite según la decisión (temporal hasta que el proceso finalice)
-        const nuevoEstado = aprobado ? 'aprobado' : 'rechazado';
-        await prisma.tramite.update({
-          where: { id_tramite: parseInt(id) },
-          data: {
-            estado: nuevoEstado,
-            observaciones: observaciones || tramite.observaciones,
-          },
-        });
-
-        console.log(`✅ Tarea completada para trámite ${id}, decisión: ${decision}`);
-
-        res.json({
-          success: true,
-          message: `Trámite ${aprobado ? 'aprobado' : 'rechazado'} exitosamente`,
-          tramite: await prisma.tramite.findUnique({
-            where: { id_tramite: parseInt(id) },
-            include: { consultante: { include: { usuario: true } }, grupo: true },
-          }),
-        });
-      } catch (error: any) {
-        console.error('Error al completar tarea en Camunda:', error.message);
-        res.status(500).json({
-          error: 'Error al completar tarea en Camunda',
-          details: error.response?.data || error.message,
-        });
-      }
-    } catch (error: any) {
-      console.error('❌ Error al completar tarea:', error);
-      res.status(500).json({ error: error.message });
-    }
-  },
 
   // Eliminar trámite
   async delete(req: AuthRequest, res: Response) {

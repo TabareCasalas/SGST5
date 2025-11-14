@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:3001/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 export class ApiService {
   // Helper para obtener headers con token
@@ -502,47 +502,6 @@ export class ApiService {
       const error = await response.json();
       throw new Error(error.error || 'Error al activar grupo');
     }
-    return response.json();
-  }
-
-  // ============== TAREAS CAMUNDA ==============
-
-  /**
-   * Completa una tarea manual (User Task) en Camunda
-   * Esto actualiza el estado del trámite según la decisión (aprobado/rechazado)
-   */
-  static async completarTarea(tramiteId: number, aprobado: boolean, observaciones?: string) {
-    const response = await fetch(`${API_URL}/tramites/${tramiteId}/completar-tarea`, {
-      method: 'POST',
-      headers: this.getAuthHeaders(),
-      body: JSON.stringify({ 
-        aprobado, 
-        observaciones,
-        decision: aprobado ? 'aprobado' : 'rechazado'
-      }),
-    });
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Error al completar tarea');
-    }
-    return response.json();
-  }
-
-  /**
-   * Obtiene las tareas pendientes para el usuario actual
-   */
-  static async getTareasPendientes() {
-    const response = await fetch(`${API_URL}/tareas/pendientes`);
-    if (!response.ok) throw new Error('Error al obtener tareas pendientes');
-    return response.json();
-  }
-
-  /**
-   * Obtiene información de la instancia de proceso en Camunda
-   */
-  static async getProcesoCamunda(processInstanceId: string) {
-    const response = await fetch(`${API_URL}/procesos/${processInstanceId}`);
-    if (!response.ok) throw new Error('Error al obtener información del proceso');
     return response.json();
   }
 
