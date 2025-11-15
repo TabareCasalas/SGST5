@@ -14,7 +14,21 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Variables configurables
-APP_DIR="/var/www/sgst"
+# Detectar automáticamente el directorio del proyecto
+if [ -f "deploy-complete.sh" ]; then
+    # Si estamos en el directorio del proyecto
+    APP_DIR=$(pwd)
+elif [ -d "/var/www/sgst" ]; then
+    # Si existe /var/www/sgst
+    APP_DIR="/var/www/sgst"
+elif [ -d "$HOME/sgst" ]; then
+    # Si está en el home del usuario
+    APP_DIR="$HOME/sgst"
+else
+    # Por defecto intentar crear /var/www/sgst
+    APP_DIR="/var/www/sgst"
+fi
+
 APP_USER=$(whoami)
 DOMAIN=""
 IP_ADDRESS=""
@@ -127,22 +141,32 @@ echo -e "${GREEN}✅ PostgreSQL configurado${NC}"
 echo ""
 
 # ============================================
-# PASO 3: Clonar/Actualizar repositorio
+# PASO 3: Verificar/Configurar código fuente
 # ============================================
 echo -e "${BLUE}📥 Paso 3: Configurando código fuente...${NC}"
 
-if [ -d "$APP_DIR" ]; then
-    echo "  → El directorio ya existe, actualizando..."
+# Si ya estamos en el directorio del proyecto (tiene backend/package.json)
+if [ -f "backend/package.json" ]; then
+    APP_DIR=$(pwd)
+    echo "  → Usando directorio actual: $APP_DIR"
     cd "$APP_DIR"
+elif [ -d "$APP_DIR" ] && [ -f "$APP_DIR/backend/package.json" ]; then
+    echo "  → El directorio ya existe, usando: $APP_DIR"
+    cd "$APP_DIR"
+    # Intentar actualizar
     git pull origin main 2>/dev/null || git pull origin master 2>/dev/null || echo "  ⚠️  No se pudo actualizar, continuando..."
 else
-    echo "  → Creando directorio..."
-    sudo mkdir -p "$APP_DIR"
-    echo "  → Clonando repositorio..."
-    read -p "Ingresa la URL de tu repositorio GitHub: " REPO_URL
-    sudo git clone "$REPO_URL" "$APP_DIR"
-    sudo chown -R $APP_USER:$APP_USER "$APP_DIR"
-    cd "$APP_DIR"
+    echo -e "${RED}❌ No se encontró el código fuente.${NC}"
+    echo -e "${YELLOW}Por favor, ejecuta estos comandos primero:${NC}"
+    echo ""
+    echo "  sudo mkdir -p /var/www"
+    echo "  cd /var/www"
+    echo "  sudo git clone https://github.com/TabareCasalas/SGST5.git sgst"
+    echo "  sudo chown -R \$USER:\$USER /var/www/sgst"
+    echo "  cd /var/www/sgst"
+    echo "  ./deploy-complete.sh"
+    echo ""
+    exit 1
 fi
 
 echo -e "${GREEN}✅ Código fuente configurado${NC}"

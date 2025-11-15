@@ -1,0 +1,25 @@
+# ============================================
+# COMANDOS PARA COPIAR Y PEGAR EN SSH
+# Repositorio: https://github.com/TabareCasalas/SGST5
+# ============================================
+
+# Paso 1: Crear directorio y clonar repositorio
+cd /var/www
+sudo git clone https://github.com/TabareCasalas/SGST5.git sgst
+sudo chown -R $USER:$USER /var/www/sgst
+cd /var/www/sgst
+
+# Paso 2: Hacer el script ejecutable
+chmod +x deploy-complete.sh
+
+# Paso 3: Ejecutar el script de despliegue completo
+./deploy-complete.sh
+
+# ============================================
+# El script te preguntará:
+# - ¿Tienes un dominio? (s/n)
+# - Si no tienes dominio: Ingresa la IP pública de la VM
+# - ¿Quieres usar la contraseña por defecto para PostgreSQL? (s/n)
+# - Si el repositorio no existe: Ingresa la URL del repositorio
+# ============================================
+

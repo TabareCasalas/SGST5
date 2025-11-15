@@ -1,0 +1,25 @@
+# ============================================
+# COMANDOS CORREGIDOS PARA SSH
+# El directorio /var/www no existe, lo creamos primero
+# ============================================
+
+# Opción 1: Crear /var/www y clonar ahí
+sudo mkdir -p /var/www
+cd /var/www
+sudo git clone https://github.com/TabareCasalas/SGST5.git sgst
+sudo chown -R $USER:$USER /var/www/sgst
+cd /var/www/sgst
+chmod +x deploy-complete.sh
+./deploy-complete.sh
+
+# ============================================
+# OPCIONAL: Si prefieres usar el directorio home (más simple)
+# ============================================
+
+# Opción 2: Clonar en el directorio home
+cd ~
+git clone https://github.com/TabareCasalas/SGST5.git sgst
+cd sgst
+chmod +x deploy-complete.sh
+./deploy-complete.sh
+
