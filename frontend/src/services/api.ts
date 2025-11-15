@@ -72,6 +72,81 @@ export class ApiService {
     return response.json();
   }
 
+  static async cambiarPassword(passwordActual: string, passwordNueva: string) {
+    const response = await fetch(`${API_URL}/auth/cambiar-password`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify({ passwordActual, passwordNueva }),
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      // Si hay detalles, incluir el objeto completo
+      if (error.detalles) {
+        const errorObj = new Error(error.error || 'Error al cambiar contraseña');
+        (errorObj as any).detalles = error.detalles;
+        throw errorObj;
+      }
+      throw new Error(error.error || 'Error al cambiar contraseña');
+    }
+    
+    return response.json();
+  }
+
+  // ============== SOLICITUDES DE REACTIVACIÓN ==============
+
+  static async solicitarReactivacion(ci: string, password: string, motivo?: string) {
+    const response = await fetch(`${API_URL}/solicitudes-reactivacion/solicitar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ci, password, motivo }),
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Error al solicitar reactivación');
+    }
+    
+    return response.json();
+  }
+
+  static async getSolicitudesReactivacion(estado?: string) {
+    const params = new URLSearchParams();
+    if (estado) params.append('estado', estado);
+    
+    const url = `${API_URL}/solicitudes-reactivacion${params.toString() ? '?' + params : ''}`;
+    const response = await fetch(url, {
+      headers: this.getAuthHeaders(),
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Error al obtener solicitudes');
+    }
+    
+    return response.json();
+  }
+
+  static async procesarSolicitudReactivacion(id: number, accion: 'aprobar' | 'rechazar', respuesta?: string, fecha_desactivacion_automatica?: string) {
+    const body: any = { accion, respuesta };
+    if (fecha_desactivacion_automatica) {
+      body.fecha_desactivacion_automatica = fecha_desactivacion_automatica;
+    }
+    
+    const response = await fetch(`${API_URL}/solicitudes-reactivacion/${id}/procesar`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(body),
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Error al procesar solicitud');
+    }
+    
+    return response.json();
+  }
+
   // ============== TRÁMITES ==============
   
   static async getTramites(filters?: { estado?: string; id_consultante?: number; id_grupo?: number; search?: string }) {
@@ -174,8 +249,13 @@ export class ApiService {
   }
 
   static async getUsuarioById(id: number) {
-    const response = await fetch(`${API_URL}/usuarios/${id}`);
-    if (!response.ok) throw new Error('Error al obtener usuario');
+    const response = await fetch(`${API_URL}/usuarios/${id}`, {
+      headers: this.getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Error al obtener usuario' }));
+      throw new Error(error.error || 'Error al obtener usuario');
+    }
     return response.json();
   }
 
@@ -208,6 +288,7 @@ export class ApiService {
   static async deactivateUsuario(id: number) {
     const response = await fetch(`${API_URL}/usuarios/${id}/desactivar`, {
       method: 'POST',
+      headers: this.getAuthHeaders(),
     });
     if (!response.ok) {
       const error = await response.json();
@@ -219,10 +300,23 @@ export class ApiService {
   static async activateUsuario(id: number) {
     const response = await fetch(`${API_URL}/usuarios/${id}/activar`, {
       method: 'POST',
+      headers: this.getAuthHeaders(),
     });
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.error || 'Error al activar usuario');
+    }
+    return response.json();
+  }
+
+  static async deleteUsuario(id: number) {
+    const response = await fetch(`${API_URL}/usuarios/${id}`, {
+      method: 'DELETE',
+      headers: this.getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Error al eliminar usuario');
     }
     return response.json();
   }
@@ -501,6 +595,18 @@ export class ApiService {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.error || 'Error al activar grupo');
+    }
+    return response.json();
+  }
+
+  static async deleteGrupo(id: number) {
+    const response = await fetch(`${API_URL}/grupos/${id}`, {
+      method: 'DELETE',
+      headers: this.getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Error al eliminar grupo');
     }
     return response.json();
   }

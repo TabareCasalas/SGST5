@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { FaUser, FaLock, FaSignInAlt } from 'react-icons/fa';
+import { CambiarPasswordModal } from './CambiarPasswordModal';
+import { SolicitarReactivacionModal } from './SolicitarReactivacionModal';
 import './Login.css';
 
 export function Login() {
@@ -8,6 +10,15 @@ export function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [mostrarCambiarPassword, setMostrarCambiarPassword] = useState(false);
+  const [passwordTemporal, setPasswordTemporal] = useState('');
+  const [mostrarSolicitarReactivacion, setMostrarSolicitarReactivacion] = useState(false);
+  const [infoReactivacion, setInfoReactivacion] = useState<{
+    puedeSolicitar?: boolean;
+    tieneSolicitudPendiente?: boolean;
+    tieneSolicitudAprobada?: boolean;
+    tieneSolicitudRechazada?: boolean;
+  } | null>(null);
   const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -16,12 +27,42 @@ export function Login() {
     setLoading(true);
 
     try {
-      await login(ci, password);
+      const result = await login(ci, password);
+      // Si el resultado indica que debe cambiar la contraseña
+      if (result && 'debeCambiarPassword' in result && result.debeCambiarPassword) {
+        setPasswordTemporal(password);
+        setMostrarCambiarPassword(true);
+        setLoading(false);
+      }
     } catch (err: any) {
+      // Verificar si el error es por usuario inactivo
+      try {
+        const errorData = JSON.parse(err.message);
+        if (errorData.error === 'Usuario inactivo') {
+          setInfoReactivacion({
+            puedeSolicitar: errorData.puedeSolicitarReactivacion,
+            tieneSolicitudPendiente: errorData.tieneSolicitudPendiente,
+            tieneSolicitudAprobada: errorData.tieneSolicitudAprobada,
+            tieneSolicitudRechazada: errorData.tieneSolicitudRechazada,
+          });
+          setMostrarSolicitarReactivacion(true);
+          setError('');
+          setLoading(false);
+          return;
+        }
+      } catch {
+        // No es JSON, continuar con el error normal
+      }
       setError(err.message || 'Error al iniciar sesión');
-    } finally {
       setLoading(false);
     }
+  };
+
+  const handlePasswordCambiada = () => {
+    setMostrarCambiarPassword(false);
+    setPasswordTemporal('');
+    // Recargar la página para que el usuario inicie sesión nuevamente
+    window.location.reload();
   };
 
   const handleQuickLogin = (testCi: string) => {
@@ -193,6 +234,32 @@ export function Login() {
           <small>© 2024 Clínica Notarial Universitaria</small>
         </div>
       </div>
+
+      {/* Modal para cambiar contraseña */}
+      <CambiarPasswordModal
+        isOpen={mostrarCambiarPassword}
+        onSuccess={handlePasswordCambiada}
+        esPrimeraVez={true}
+        passwordTemporal={passwordTemporal}
+      />
+
+      {/* Modal para solicitar reactivación */}
+      <SolicitarReactivacionModal
+        isOpen={mostrarSolicitarReactivacion}
+        onClose={() => {
+          setMostrarSolicitarReactivacion(false);
+          setInfoReactivacion(null);
+        }}
+        onSuccess={() => {
+          setMostrarSolicitarReactivacion(false);
+          setInfoReactivacion(null);
+        }}
+        ci={ci}
+        password={password}
+        tieneSolicitudPendiente={infoReactivacion?.tieneSolicitudPendiente}
+        tieneSolicitudAprobada={infoReactivacion?.tieneSolicitudAprobada}
+        tieneSolicitudRechazada={infoReactivacion?.tieneSolicitudRechazada}
+      />
     </div>
   );
 }

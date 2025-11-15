@@ -4,83 +4,41 @@ import { normalizeText } from '../utils/normalizeText';
 import { AuthRequest } from '../middleware/authMiddleware';
 import { NotificacionService } from '../utils/notificacionService';
 import { AuditoriaService } from '../utils/auditoriaService';
+import { formatDate } from '../utils/dateFormatter';
 
 /**
- * Genera el número de consulta en formato xx/yyyy
- * donde xx es un número secuencial e yyyy es el año actual
+ * Genera el número de consulta en formato F001/25
+ * donde F es el prefijo, 001 es un número secuencial de 3 dígitos y 25 es el año actual (2 dígitos)
  */
 async function generarNumeroConsulta(): Promise<string> {
   const añoActual = new Date().getFullYear();
-  const añoActualStr = añoActual.toString();
+  const añoActual2Digitos = añoActual.toString().slice(-2); // Últimos 2 dígitos del año
   
-  // Buscar todas las fichas del año actual
+  // Buscar todas las fichas del año actual que empiecen con F
   const fichasDelAño = await prisma.ficha.findMany({
     where: {
       numero_consulta: {
-        contains: `/${añoActualStr}`,
+        contains: `/${añoActual2Digitos}`,
       },
     },
     select: {
       numero_consulta: true,
     },
   });
+  
+  // Filtrar solo las que empiezan con F
+  const fichasConPrefijoF = fichasDelAño.filter(f => f.numero_consulta.startsWith('F'));
 
   let siguienteNumero = 1;
   
-  if (fichasDelAño.length > 0) {
+  if (fichasConPrefijoF.length > 0) {
     // Extraer todos los números y encontrar el máximo
-    const numeros = fichasDelAño
+    const numeros = fichasConPrefijoF
       .map(f => {
-        const partes = f.numero_consulta.split('/');
-        if (partes.length === 2 && partes[1] === añoActualStr) {
-          return parseInt(partes[0], 10);
-        }
-        return 0;
-      })
-      .filter(n => !isNaN(n) && n > 0);
-    
-    if (numeros.length > 0) {
-      siguienteNumero = Math.max(...numeros) + 1;
-    }
-  }
-
-  // Formatear con ceros a la izquierda (mínimo 2 dígitos)
-  const numeroFormateado = siguienteNumero.toString().padStart(2, '0');
-  
-  return `${numeroFormateado}/${añoActual}`;
-}
-
-/**
- * Genera el número de carpeta en formato xxx/yy
- * donde xxx es un número secuencial de 3 dígitos e yy es el año actual (2 dígitos)
- * Ejemplo: 001/25, 010/25, 100/25
- */
-async function generarNumeroCarpeta(): Promise<string> {
-  const añoActual = new Date().getFullYear();
-  const añoActual2Digitos = añoActual.toString().slice(-2); // Últimos 2 dígitos del año
-  
-  // Buscar todos los trámites del año actual
-  const tramitesDelAño = await prisma.tramite.findMany({
-    where: {
-      num_carpeta: {
-        contains: `/${añoActual2Digitos}`,
-        mode: 'insensitive',
-      },
-    },
-    select: {
-      num_carpeta: true,
-    },
-  });
-
-  let siguienteNumero = 1;
-  
-  if (tramitesDelAño.length > 0) {
-    // Extraer todos los números y encontrar el máximo
-    const numeros = tramitesDelAño
-      .map(t => {
-        const partes = t.num_carpeta.split('/');
-        if (partes.length === 2 && partes[1] === añoActual2Digitos) {
-          return parseInt(partes[0], 10);
+        // Formato esperado: F001/25
+        const match = f.numero_consulta.match(/^F(\d+)\/(\d+)$/);
+        if (match && match[2] === añoActual2Digitos) {
+          return parseInt(match[1], 10);
         }
         return 0;
       })
@@ -94,7 +52,59 @@ async function generarNumeroCarpeta(): Promise<string> {
   // Formatear con ceros a la izquierda (3 dígitos)
   const numeroFormateado = siguienteNumero.toString().padStart(3, '0');
   
-  return `${numeroFormateado}/${añoActual2Digitos}`;
+  return `F${numeroFormateado}/${añoActual2Digitos}`;
+}
+
+/**
+ * Genera el número de carpeta en formato T001/25
+ * donde T es el prefijo, 001 es un número secuencial de 3 dígitos y 25 es el año actual (2 dígitos)
+ * Ejemplo: T001/25, T010/25, T100/25
+ * Este formato se usa para los trámites iniciados desde fichas
+ */
+async function generarNumeroCarpeta(): Promise<string> {
+  const añoActual = new Date().getFullYear();
+  const añoActual2Digitos = añoActual.toString().slice(-2); // Últimos 2 dígitos del año
+  
+  // Buscar todos los trámites del año actual que empiecen con T
+  const tramitesDelAño = await prisma.tramite.findMany({
+    where: {
+      num_carpeta: {
+        contains: `/${añoActual2Digitos}`,
+        mode: 'insensitive',
+      },
+    },
+    select: {
+      num_carpeta: true,
+    },
+  });
+  
+  // Filtrar solo los que empiezan con T
+  const tramitesConPrefijoT = tramitesDelAño.filter(t => t.num_carpeta.toUpperCase().startsWith('T'));
+
+  let siguienteNumero = 1;
+  
+  if (tramitesConPrefijoT.length > 0) {
+    // Extraer todos los números y encontrar el máximo
+    const numeros = tramitesConPrefijoT
+      .map(t => {
+        // Formato esperado: T001/25
+        const match = t.num_carpeta.match(/^T(\d+)\/(\d+)$/i);
+        if (match && match[2] === añoActual2Digitos) {
+          return parseInt(match[1], 10);
+        }
+        return 0;
+      })
+      .filter(n => !isNaN(n) && n > 0);
+    
+    if (numeros.length > 0) {
+      siguienteNumero = Math.max(...numeros) + 1;
+    }
+  }
+
+  // Formatear con ceros a la izquierda (3 dígitos)
+  const numeroFormateado = siguienteNumero.toString().padStart(3, '0');
+  
+  return `T${numeroFormateado}/${añoActual2Digitos}`;
 }
 
 export const fichaController = {
@@ -504,7 +514,7 @@ export const fichaController = {
           id_usuario: idUsuarioConsultante,
           id_usuario_emisor: idUsuarioCreador,
           titulo: 'Ficha de consulta creada',
-          mensaje: `Se ha creado tu ficha de consulta: ${ficha.numero_consulta}. ${estadoFicha === 'pendiente' ? 'La ficha está pendiente de aprobación.' : `Fecha de cita: ${fechaCitaNormalizada ? new Date(fechaCitaNormalizada).toLocaleDateString('es-ES') : 'Por definir'}${horaCitaNormalizada ? ` a las ${horaCitaNormalizada}` : ''}.`}`,
+          mensaje: `Se ha creado tu ficha de consulta: ${ficha.numero_consulta}. ${estadoFicha === 'pendiente' ? 'La ficha está pendiente de aprobación.' : `Fecha de cita: ${fechaCitaNormalizada ? formatDate(fechaCitaNormalizada) : 'Por definir'}${horaCitaNormalizada ? ` ${horaCitaNormalizada}` : ''}.`}`,
           tipo: estadoFicha === 'pendiente' ? 'warning' : 'success',
           tipo_entidad: 'ficha',
           id_entidad: ficha.id_ficha,
@@ -787,7 +797,7 @@ export const fichaController = {
         await NotificacionService.crearParaGrupo(id_grupo, {
           id_usuario_emisor: userId, // Docente que asigna la ficha
           titulo: 'Nueva ficha asignada a tu grupo',
-          mensaje: `Se ha asignado la ficha de consulta ${fichaActualizada.numero_consulta} a tu grupo "${grupo.nombre}". Consultante: ${fichaActualizada.consultante.usuario.nombre}. Tema: ${fichaActualizada.tema_consulta}. ${fichaActualizada.fecha_cita ? `Fecha de cita: ${new Date(fichaActualizada.fecha_cita).toLocaleDateString('es-ES')}${fichaActualizada.hora_cita ? ` a las ${fichaActualizada.hora_cita}` : ''}.` : ''}`,
+          mensaje: `Se ha asignado la ficha de consulta ${fichaActualizada.numero_consulta} a tu grupo "${grupo.nombre}". Consultante: ${fichaActualizada.consultante.usuario.nombre}. Tema: ${fichaActualizada.tema_consulta}. ${fichaActualizada.fecha_cita ? `Fecha de cita: ${formatDate(fichaActualizada.fecha_cita)}${fichaActualizada.hora_cita ? ` ${fichaActualizada.hora_cita}` : ''}.` : ''}`,
           tipo: 'info',
           tipo_entidad: 'ficha',
           id_entidad: fichaActualizada.id_ficha,

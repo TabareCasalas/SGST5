@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { ApiService } from '../services/api';
 import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -6,6 +6,8 @@ import {
   FaFileAlt, FaChevronDown, FaChevronUp, FaClock, FaCheckCircle, 
   FaUser, FaUsers, FaCalendarAlt, FaSearch, FaTimes, FaUserTie, FaPlay
 } from 'react-icons/fa';
+import { SearchInput } from './SearchInput';
+import { formatDateTime } from '../utils/dateFormatter';
 import './FichasList.css';
 
 interface Ficha {
@@ -49,6 +51,7 @@ export function EstudianteFichasList() {
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState<string>('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [showIniciarModal, setShowIniciarModal] = useState(false);
   const [fichaIniciar, setFichaIniciar] = useState<Ficha | null>(null);
   const [iniciando, setIniciando] = useState(false);
@@ -64,14 +67,10 @@ export function EstudianteFichasList() {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  useEffect(() => {
-    loadFichas();
-    // Auto-refresh cada 30 segundos
-    const interval = setInterval(loadFichas, 30000);
-    return () => clearInterval(interval);
-  }, [debouncedSearchTerm, user]);
-
-  const loadFichas = async () => {
+  const loadFichas = useCallback(async () => {
+    // Guardar si el input tenía foco antes de cargar
+    const hadFocus = document.activeElement === searchInputRef.current;
+    
     try {
       setLoading(true);
       
@@ -106,8 +105,23 @@ export function EstudianteFichasList() {
       showToast(`Error al cargar fichas: ${err.message}`, 'error');
     } finally {
       setLoading(false);
+      // Restaurar el foco si lo tenía antes
+      if (hadFocus && searchInputRef.current) {
+        setTimeout(() => {
+          searchInputRef.current?.focus();
+          const length = searchInputRef.current.value.length;
+          searchInputRef.current.setSelectionRange(length, length);
+        }, 0);
+      }
     }
-  };
+  }, [debouncedSearchTerm, user, showToast]);
+
+  useEffect(() => {
+    loadFichas();
+    // Auto-refresh cada 30 segundos
+    const interval = setInterval(loadFichas, 30000);
+    return () => clearInterval(interval);
+  }, [loadFichas]);
 
   const toggleRow = (id: number) => {
     const newExpanded = new Set(expandedRows);
@@ -143,20 +157,10 @@ export function EstudianteFichasList() {
   };
 
   const formatDate = (dateString: string, horaCita?: string) => {
-    const date = new Date(dateString);
-    const fechaFormateada = date.toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-    
     if (horaCita) {
-      const [hora, minutos] = horaCita.split(':');
-      const horaFormateada = `${hora}:${minutos}`;
-      return `${fechaFormateada} a las ${horaFormateada}`;
+      return formatDateTime(dateString, horaCita);
     }
-    
-    return fechaFormateada;
+    return formatDateTime(dateString);
   };
 
   const handleIniciarTramite = (ficha: Ficha) => {
@@ -212,12 +216,11 @@ export function EstudianteFichasList() {
         <div className="header-actions">
           <div className="search-container">
             <FaSearch className="search-icon" />
-            <input
-              type="text"
-              placeholder="Buscar por número, consultante, tema..."
+            <SearchInput
+              ref={searchInputRef}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="search-input"
+              placeholder="Buscar por número, consultante, tema..."
             />
             {searchTerm && (
               <button

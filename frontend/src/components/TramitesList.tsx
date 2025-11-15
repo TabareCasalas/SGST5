@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { ApiService } from '../services/api';
 import type { Tramite } from '../types/tramite';
 import { RechazoModal } from './RechazoModal';
@@ -12,6 +12,8 @@ import {
 import { HojaRutaModal } from './HojaRutaModal';
 import { DocumentosModal } from './DocumentosModal';
 import { CambiarEstadoTramiteModal } from './CambiarEstadoTramiteModal';
+import { SearchInput } from './SearchInput';
+import { formatDate, formatDateTime } from '../utils/dateFormatter';
 import './TramitesList.css';
 
 export function TramitesList() {
@@ -21,6 +23,7 @@ export function TramitesList() {
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState<string>('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState<'mis' | 'otras' | 'todas'>('mis');
   const [showRechazoModal, setShowRechazoModal] = useState(false);
   const [tramiteRechazar, setTramiteRechazar] = useState<number | null>(null);
@@ -45,15 +48,10 @@ export function TramitesList() {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  // Cargar trámites cuando cambia el usuario, el término de búsqueda con debounce o la pestaña
-  useEffect(() => {
-    loadTramites();
-    // Auto-refresh cada 30 segundos
-    const interval = setInterval(loadTramites, 30000);
-    return () => clearInterval(interval);
-  }, [user, debouncedSearchTerm, activeTab]); // Recargar cuando cambia el usuario, el término de búsqueda con debounce o la pestaña
-
-  const loadTramites = async () => {
+  const loadTramites = useCallback(async () => {
+    // Guardar si el input tenía foco antes de cargar
+    const hadFocus = document.activeElement === searchInputRef.current;
+    
     try {
       setLoading(true);
       
@@ -177,8 +175,24 @@ export function TramitesList() {
       setError(err.message);
     } finally {
       setLoading(false);
+      // Restaurar el foco si lo tenía antes
+      if (hadFocus && searchInputRef.current) {
+        setTimeout(() => {
+          searchInputRef.current?.focus();
+          const length = searchInputRef.current.value.length;
+          searchInputRef.current.setSelectionRange(length, length);
+        }, 0);
+      }
     }
-  };
+  }, [user, debouncedSearchTerm, activeTab, hasRole, showToast]);
+
+  // Cargar trámites cuando cambia el usuario, el término de búsqueda con debounce o la pestaña
+  useEffect(() => {
+    loadTramites();
+    // Auto-refresh cada 30 segundos
+    const interval = setInterval(loadTramites, 30000);
+    return () => clearInterval(interval);
+  }, [loadTramites]);
 
   const toggleRow = (id: number) => {
     const newExpanded = new Set(expandedRows);
@@ -295,7 +309,6 @@ export function TramitesList() {
     <div className="tramites-container">
       <div className="tramites-header">
         <div>
-          <h2>📋 Lista de Trámites</h2>
           {hasRole('docente') && (
             <div className="tabs-container">
               <button
@@ -322,12 +335,11 @@ export function TramitesList() {
         <div className="header-actions">
           <div className="search-container">
             <FaSearch className="search-icon" />
-            <input
-              type="text"
-              placeholder="Buscar por carpeta, consultante, grupo, estado..."
+            <SearchInput
+              ref={searchInputRef}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="search-input"
+              placeholder="Buscar por carpeta, consultante, grupo, estado..."
             />
             {searchTerm && (
               <button
@@ -367,9 +379,8 @@ export function TramitesList() {
             </thead>
             <tbody>
               {tramites.map((tramite) => (
-                <>
+                <React.Fragment key={tramite.id_tramite}>
                   <tr 
-                    key={tramite.id_tramite} 
                     className={`table-row ${(tramite.estado === 'en_tramite' || tramite.estado === 'iniciado') ? 'highlight-row' : ''}`}
                     onClick={() => toggleRow(tramite.id_tramite)}
                   >
@@ -404,54 +415,52 @@ export function TramitesList() {
                       </div>
                     </td>
                     <td>
-                      {new Date(tramite.fecha_inicio).toLocaleDateString('es-ES', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric'
-                      })}
+                      {formatDate(tramite.fecha_inicio)}
                     </td>
-                    <td className="action-buttons">
-                      {/* Administradores pueden aprobar trámites pendientes */}
-                      {tramite.estado === 'pendiente' && hasRole('admin') && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleAprobarTramite(tramite.id_tramite);
-                          }}
-                          className="action-btn approve-btn"
-                          title="Aprobar trámite pendiente"
-                        >
-                          <FaCheckCircle /> Aprobar
-                        </button>
-                      )}
-                      {/* Alumnos y docentes pueden cambiar el estado del trámite */}
-                      {(hasRole('estudiante') || hasRole('docente') || (hasRole('admin') && hasAccessLevel(2))) && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setTramiteCambiarEstado(tramite);
-                            setShowCambiarEstadoModal(true);
-                          }}
-                          className="action-btn"
-                          style={{ background: 'linear-gradient(135deg, #6c757d, #5a6268)' }}
-                          title="Cambiar estado del trámite"
-                        >
-                          <FaSync /> Cambiar Estado
-                        </button>
-                      )}
-                      {/* Solo admin sistema y admin docente pueden eliminar */}
-                      {hasRole('admin') && hasAccessLevel(2) && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete(tramite.id_tramite);
-                          }}
-                          className="action-btn delete-btn"
-                          title="Eliminar trámite"
-                        >
-                          <FaTrash />
-                        </button>
-                      )}
+                    <td>
+                      <div className="action-buttons">
+                        {/* Administradores pueden aprobar trámites pendientes */}
+                        {tramite.estado === 'pendiente' && hasRole('admin') && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAprobarTramite(tramite.id_tramite);
+                            }}
+                            className="btn-icon btn-success"
+                            title="Aprobar trámite pendiente"
+                          >
+                            <FaCheckCircle />
+                          </button>
+                        )}
+                        {/* Alumnos y docentes pueden cambiar el estado del trámite */}
+                        {(hasRole('estudiante') || hasRole('docente') || (hasRole('admin') && hasAccessLevel(2))) && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setTramiteCambiarEstado(tramite);
+                              setShowCambiarEstadoModal(true);
+                            }}
+                            className="btn-icon"
+                            style={{ color: '#6c757d' }}
+                            title="Cambiar estado del trámite"
+                          >
+                            <FaSync />
+                          </button>
+                        )}
+                        {/* Solo admin sistema y admin docente pueden eliminar */}
+                        {hasRole('admin') && hasAccessLevel(2) && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(tramite.id_tramite);
+                            }}
+                            className="btn-icon btn-danger"
+                            title="Eliminar trámite"
+                          >
+                            <FaTrash />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                   {expandedRows.has(tramite.id_tramite) && (
@@ -496,7 +505,7 @@ export function TramitesList() {
                             <FaCalendarAlt className="detail-icon" />
                             <div>
                               <strong>Fecha de Inicio</strong>
-                              <p>{new Date(tramite.fecha_inicio).toLocaleString('es-ES')}</p>
+                              <p>{formatDateTime(tramite.fecha_inicio)}</p>
                             </div>
                           </div>
                           {tramite.fecha_cierre && (
@@ -504,7 +513,7 @@ export function TramitesList() {
                               <FaTimesCircle className="detail-icon" />
                               <div>
                                 <strong>Fecha de Cierre</strong>
-                                <p>{new Date(tramite.fecha_cierre).toLocaleString('es-ES')}</p>
+                                <p>{formatDateTime(tramite.fecha_cierre)}</p>
                               </div>
                             </div>
                           )}
@@ -568,7 +577,7 @@ export function TramitesList() {
                       </td>
                     </tr>
                   )}
-                </>
+                </React.Fragment>
               ))}
             </tbody>
           </table>
@@ -683,7 +692,7 @@ export function TramitesList() {
                             {tramite.grupo && (
                               <small>Grupo: {tramite.grupo.nombre}</small>
                             )}
-                            <small>Fecha: {new Date(tramite.fecha_inicio).toLocaleString('es-ES')}</small>
+                            <small>Fecha: {formatDateTime(tramite.fecha_inicio)}</small>
                           </div>
                         ))}
                       </div>

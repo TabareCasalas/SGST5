@@ -88,32 +88,144 @@
   color: #721c24;
 }
 
-.btn-toggle {
-  padding: 6px 12px;
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.btn-icon {
+  background: none;
   border: none;
-  border-radius: 6px;
+  color: var(--primary-color);
   cursor: pointer;
-  font-size: 12px;
-  font-weight: 500;
+  padding: 0.5rem;
+  border-radius: 4px;
   transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
 }
 
-.btn-activate {
-  background-color: #28a745;
-  color: white;
+.btn-icon:hover {
+  background-color: var(--bg-secondary);
+  transform: scale(1.1);
 }
 
-.btn-activate:hover {
-  background-color: #218838;
+.btn-icon.btn-edit {
+  color: #2563eb;
 }
 
-.btn-deactivate {
-  background-color: #dc3545;
-  color: white;
+.btn-icon.btn-edit:hover {
+  background-color: #dbeafe;
 }
 
-.btn-deactivate:hover {
-  background-color: #c82333;
+.btn-icon.btn-success {
+  color: #10b981;
+}
+
+.btn-icon.btn-success:hover {
+  background-color: #d1fae5;
+}
+
+.btn-icon.btn-danger {
+  color: var(--danger-color, #dc3545);
+}
+
+.btn-icon.btn-danger:hover {
+  background-color: #fee;
+}
+
+.usuario-row {
+  border-bottom: 1px solid var(--border-color);
+  transition: background-color 0.2s;
+}
+
+.usuario-row:hover {
+  background-color: #f8f9fa;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.user-info svg {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.user-info span {
+  font-weight: 500;
+}
+
+.usuario-details-row {
+  background-color: #f8f9fa;
+}
+
+.usuario-details-row td {
+  padding: 0;
+}
+
+.usuario-details {
+  padding: 1.5rem;
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.detail-item.full-width {
+  grid-column: 1 / -1;
+}
+
+.detail-item strong {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.detail-item span {
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.detail-item p {
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.grupos-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.grupo-badge {
+  display: inline-block;
+  padding: 0.4rem 0.8rem;
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  color: #1976d2;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-left: 4px solid #2196f3;
 }
 
 .empty-state {
@@ -122,13 +234,68 @@
   color: var(--text-secondary);
 }
 
+.btn-solicitudes {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #17a2b8;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.btn-solicitudes:hover {
+  background: #138496;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.badge-count {
+  background: #dc3545;
+  color: white;
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  min-width: 20px;
+  text-align: center;
+  margin-left: 4px;
+}
+
+.solicitudes-section {
+  margin-bottom: 24px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid var(--border-color, #e0e0e0);
+}
+
+.solicitudes-section .solicitudes-reactivacion-list {
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.solicitudes-section .solicitudes-reactivacion-list h3 {
+  margin: 0 0 12px 0;
+  color: var(--primary-color);
+  font-size: 20px;
+}
+
 .usuarios-list-loading {
   padding: 40px;
   text-align: center;
   color: var(--text-secondary);
 }
 
-.btn-create {
+.btn-create,
+.btn-import {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -150,7 +317,18 @@
   background: linear-gradient(135deg, #2563eb 0%, #1e3a8a 100%);
 }
 
-.btn-create:active {
+.btn-import {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+}
+
+.btn-import:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+  background: linear-gradient(135deg, #218838 0%, #1ea080 100%);
+}
+
+.btn-create:active,
+.btn-import:active {
   transform: translateY(0);
 }
 

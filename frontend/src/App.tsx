@@ -28,7 +28,7 @@ interface MenuItem {
 }
 
 function AppContent() {
-  const { user, logout, isAuthenticated, hasRole, hasAccessLevel } = useAuth();
+  const { user, logout, isAuthenticated, isLoading, hasRole, hasAccessLevel } = useAuth();
   const [notificacionesOpen, setNotificacionesOpen] = useState(false);
   const [currentView, setCurrentView] = useState<View>('tramites');
   const [refreshKey, setRefreshKey] = useState(0);
@@ -68,6 +68,22 @@ function AppContent() {
   };
 
 
+  // Mostrar loading mientras se verifica la sesión
+  if (isLoading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        fontSize: '18px',
+        color: '#666'
+      }}>
+        Cargando...
+      </div>
+    );
+  }
+
   // Si no está autenticado, mostrar login
   if (!isAuthenticated || !user) {
     return <Login />;
@@ -96,8 +112,8 @@ function AppContent() {
     // 4. Trámites (Todos los admins)
     menuItems.push({ id: 'tramites', icon: '📋', label: 'Trámites', view: 'tramites', roles: ['admin'] });
     
-    // 5. Auditorías (Administrativo nivel 1)
-    if (hasAccessLevel(1)) {
+    // 5. Auditorías (Solo Administrador Sistema nivel 3)
+    if (hasAccessLevel(3)) {
       menuItems.push({ id: 'auditorias', icon: '📋', label: 'Auditorías', view: 'auditorias', roles: ['admin'] });
     }
     
@@ -225,10 +241,8 @@ function AppContent() {
               {currentView === 'consultar_tramite' && '🔍 Consultar Trámite'}
               {currentView === 'notificaciones' && '🔔 Notificaciones'}
               {currentView === 'auditorias' && '📋 Auditorías del Sistema'}
+              {currentView === 'reportes' && '📊 Reportes del Sistema'}
             </h1>
-            <p className="header-subtitle">
-              Sistema de Gestión de Trámites Notariales
-            </p>
           </div>
         </header>
 
@@ -263,7 +277,7 @@ function AppContent() {
               onNotificacionLeida={loadContadorNotificaciones}
             />
           )}
-          {currentView === 'auditorias' && hasRole('admin') && hasAccessLevel(1) && (
+          {currentView === 'auditorias' && hasRole('admin') && hasAccessLevel(3) && (
             <AuditoriasList key={refreshKey} />
           )}
           {currentView === 'reportes' && hasRole('admin') && (

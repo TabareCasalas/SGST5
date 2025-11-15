@@ -460,6 +460,62 @@ export const grupoController = {
       res.status(500).json({ error: error.message });
     }
   },
+
+  async delete(req: AuthRequest, res: Response) {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.id;
+
+      // Verificar que el grupo existe
+      const grupo = await prisma.grupo.findUnique({
+        where: { id_grupo: parseInt(id) },
+        include: {
+          tramites: true,
+          miembros_grupo: true,
+        },
+      });
+
+      if (!grupo) {
+        return res.status(404).json({ error: 'Grupo no encontrado' });
+      }
+
+      // Verificar que el grupo no tenga trámites asociados
+      if (grupo.tramites && grupo.tramites.length > 0) {
+        return res.status(400).json({ 
+          error: `No se puede eliminar el grupo. Tiene ${grupo.tramites.length} trámite(s) asociado(s).` 
+        });
+      }
+
+      // Eliminar el grupo (esto eliminará automáticamente los miembros_grupo por cascade)
+      await prisma.grupo.delete({
+        where: { id_grupo: parseInt(id) },
+      });
+
+      // Registrar auditoría
+      if (userId) {
+        await AuditoriaService.crearDesdeRequest(req, {
+          id_usuario: userId,
+          tipo_entidad: 'grupo',
+          id_entidad: parseInt(id),
+          accion: 'eliminar',
+          detalles: `Grupo eliminado: ${grupo.nombre}`,
+        });
+      }
+
+      res.json({ message: 'Grupo eliminado exitosamente' });
+    } catch (error: any) {
+      if (error.code === 'P2025') {
+        return res.status(404).json({ error: 'Grupo no encontrado' });
+      }
+      // Si hay error de foreign key, significa que hay relaciones que impiden la eliminación
+      if (error.code === 'P2003') {
+        return res.status(400).json({ 
+          error: 'No se puede eliminar el grupo porque tiene relaciones activas (trámites, fichas, etc.)' 
+        });
+      }
+      res.status(500).json({ error: error.message });
+    }
+  },
 };
 
 

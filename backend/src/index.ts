@@ -18,6 +18,7 @@ import documentoRoutes from './routes/documentoRoutes';
 import fichaRoutes from './routes/fichaRoutes';
 import auditoriaRoutes from './routes/auditoriaRoutes';
 import reporteRoutes from './routes/reporteRoutes';
+import solicitudReactivacionRoutes from './routes/solicitudReactivacionRoutes';
 
 dotenv.config();
 
@@ -54,6 +55,7 @@ app.use('/api/documentos', documentoRoutes);
 app.use('/api/fichas', fichaRoutes);
 app.use('/api/auditorias', auditoriaRoutes);
 app.use('/api/reportes', reporteRoutes);
+app.use('/api/solicitudes-reactivacion', solicitudReactivacionRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -88,6 +90,15 @@ app.listen(PORT, async () => {
   console.log(`🚀 Backend iniciado en puerto ${PORT}`);
   console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🗄️  Database: ${process.env.DATABASE_URL?.split('@')[1] || 'not configured'}`);
+  
+  // Verificar configuración de Resend
+  const resendApiKey = process.env.RESEND_API_KEY;
+  if (resendApiKey) {
+    console.log(`📧 Resend API Key: ${resendApiKey.substring(0, 10)}... (configurada)`);
+    console.log(`📧 Resend From Email: ${process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'}`);
+  } else {
+    console.log(`⚠️  Resend API Key: NO configurada - Los correos no se enviarán`);
+  }
   
   // Verificar conexión a la base de datos
   try {

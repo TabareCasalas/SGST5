@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef, memo } from 'react';
 import { ApiService } from '../services/api';
 import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -10,7 +10,27 @@ import {
 import { EditFichaModal } from './EditFichaModal';
 import { AprobarFichaModal } from './AprobarFichaModal';
 import { CreateFichaModal } from './CreateFichaModal';
+import { formatDateTime } from '../utils/dateFormatter';
 import './FichasList.css';
+
+// Componente memoizado para el input de búsqueda
+const SearchInput = memo(({ value, onChange, inputRef, placeholder }: { value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; inputRef: React.RefObject<HTMLInputElement>; placeholder: string }) => {
+  return (
+    <input
+      ref={inputRef}
+      type="text"
+      placeholder={placeholder}
+      value={value}
+      onChange={onChange}
+      className="search-input"
+      autoComplete="off"
+    />
+  );
+}, (prevProps, nextProps) => {
+  return prevProps.value === nextProps.value;
+});
+
+SearchInput.displayName = 'SearchInput';
 
 interface Ficha {
   id_ficha: number;
@@ -69,6 +89,7 @@ export function FichasList() {
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const [filterEstado, setFilterEstado] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState<'mis' | 'otras' | 'todas'>('mis');
   const [showAsignarModal, setShowAsignarModal] = useState(false);
   const [fichaAsignar, setFichaAsignar] = useState<Ficha | null>(null);
@@ -85,17 +106,10 @@ export function FichasList() {
   const { showToast } = useToast();
   const { user, hasRole, hasAccessLevel } = useAuth();
 
-  useEffect(() => {
-    loadFichas();
-    if (hasRole('docente') || (hasRole('admin') && hasAccessLevel(1))) {
-      loadGrupos();
-    }
-    // Auto-refresh cada 30 segundos
-    const interval = setInterval(loadFichas, 30000);
-    return () => clearInterval(interval);
-  }, [filterEstado, searchTerm, activeTab, hasRole, hasAccessLevel]);
-
-  const loadFichas = async () => {
+  const loadFichas = useCallback(async () => {
+    // Guardar si el input tenía foco antes de cargar
+    const hadFocus = document.activeElement === searchInputRef.current;
+    
     try {
       setLoading(true);
       let data: Ficha[];
@@ -146,8 +160,26 @@ export function FichasList() {
       showToast(`Error al cargar fichas: ${err.message}`, 'error');
     } finally {
       setLoading(false);
+      // Restaurar el foco si lo tenía antes
+      if (hadFocus && searchInputRef.current) {
+        setTimeout(() => {
+          searchInputRef.current?.focus();
+          const length = searchInputRef.current.value.length;
+          searchInputRef.current.setSelectionRange(length, length);
+        }, 0);
+      }
     }
-  };
+  }, [filterEstado, searchTerm, activeTab, hasRole, hasAccessLevel, user, showToast]);
+
+  useEffect(() => {
+    loadFichas();
+    if (hasRole('docente') || (hasRole('admin') && hasAccessLevel(1))) {
+      loadGrupos();
+    }
+    // Auto-refresh cada 30 segundos
+    const interval = setInterval(loadFichas, 30000);
+    return () => clearInterval(interval);
+  }, [loadFichas, hasRole, hasAccessLevel]);
 
   const toggleRow = (id: number) => {
     const newExpanded = new Set(expandedRows);
@@ -276,21 +308,10 @@ export function FichasList() {
   };
 
   const formatDate = (dateString: string, horaCita?: string) => {
-    const date = new Date(dateString);
-    const fechaFormateada = date.toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-    
     if (horaCita) {
-      // Formatear hora de HH:mm a formato legible
-      const [hora, minutos] = horaCita.split(':');
-      const horaFormateada = `${hora}:${minutos}`;
-      return `${fechaFormateada} a las ${horaFormateada}`;
+      return formatDateTime(dateString, horaCita);
     }
-    
-    return fechaFormateada;
+    return formatDateTime(dateString);
   };
 
   if (loading && fichas.length === 0) {
@@ -313,7 +334,6 @@ export function FichasList() {
     <div className="fichas-container">
       <div className="fichas-header">
         <div>
-          <h2>📄 Fichas de Consulta</h2>
           {hasRole('docente') && (
             <div className="tabs-container">
               <button
@@ -349,12 +369,11 @@ export function FichasList() {
           )}
           <div className="search-container">
             <FaSearch className="search-icon" />
-            <input
-              type="text"
-              placeholder="Buscar por número, consultante, docente, tema..."
+            <SearchInput
+              ref={searchInputRef}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="search-input"
+              placeholder="Buscar por número, consultante, docente, tema..."
             />
             {searchTerm && (
               <button

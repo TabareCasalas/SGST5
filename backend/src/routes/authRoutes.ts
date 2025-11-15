@@ -16,6 +16,9 @@ router.post('/refresh', authController.refresh);
 // Ruta: GET /api/auth/me (requiere autenticación)
 router.get('/me', authMiddleware, authController.me);
 
+// Ruta: POST /api/auth/cambiar-password (requiere autenticación)
+router.post('/cambiar-password', authMiddleware, authController.cambiarPassword);
+
 export default router;
 
 

@@ -215,10 +215,6 @@ export function ReportesPanel() {
   return (
     <div className="reportes-panel">
       <div className="reportes-header">
-        <h2>
-          <FaChartBar />
-          Reportes del Sistema
-        </h2>
         <div className="header-actions">
           <button
             className="btn-filtros"

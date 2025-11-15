@@ -21,6 +21,9 @@ router.post('/:id/miembros', grupoController.addMiembro);
 // Ruta: DELETE /api/grupos/:id/miembros/:id_usuario_grupo
 router.delete('/:id/miembros/:id_usuario_grupo', grupoController.removeMiembro);
 
+// Ruta: DELETE /api/grupos/:id
+router.delete('/:id', grupoController.delete);
+
 export default router;
 
 

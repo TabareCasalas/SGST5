@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { ApiService } from '../services/api';
 import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -8,6 +8,7 @@ import {
   FaSearch, FaTimes, FaPlus
 } from 'react-icons/fa';
 import { CreateGrupoModal } from './CreateGrupoModal';
+import { SearchInput } from './SearchInput';
 import './GruposList.css';
 
 interface UsuarioGrupo {
@@ -44,6 +45,7 @@ export function GruposList() {
   const [activeTab, setActiveTab] = useState<'mis' | 'otras' | 'todas'>('mis');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState<string>('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const [selectedGrupo, setSelectedGrupo] = useState<Grupo | null>(null);
   const [showModifyMembers, setShowModifyMembers] = useState(false);
@@ -69,12 +71,10 @@ export function GruposList() {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  // Cargar grupos cuando cambia el usuario, la pestaña o el término de búsqueda con debounce
-  useEffect(() => {
-    loadGrupos();
-  }, [user, activeTab, debouncedSearchTerm]); // Recargar cuando cambia el usuario, la pestaña o el término de búsqueda
-
-  const loadGrupos = async () => {
+  const loadGrupos = useCallback(async () => {
+    // Guardar si el input tenía foco antes de cargar
+    const hadFocus = document.activeElement === searchInputRef.current;
+    
     try {
       setLoading(true);
       
@@ -108,8 +108,26 @@ export function GruposList() {
       showToast(`Error: ${err.message}`, 'error');
     } finally {
       setLoading(false);
+      // Restaurar el foco si lo tenía antes
+      if (hadFocus && searchInputRef.current) {
+        setTimeout(() => {
+          searchInputRef.current?.focus();
+          const length = searchInputRef.current.value.length;
+          searchInputRef.current.setSelectionRange(length, length);
+        }, 0);
+      }
     }
-  };
+  }, [user, activeTab, debouncedSearchTerm, hasRole, showToast]);
+
+  // Handler memoizado para el cambio de búsqueda
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  }, []);
+
+  // Cargar grupos cuando cambia el usuario, la pestaña o el término de búsqueda con debounce
+  useEffect(() => {
+    loadGrupos();
+  }, [loadGrupos]);
 
   const getMiembrosByRol = (grupo: Grupo, rol: string) => {
     return grupo.miembros_grupo?.filter(m => m.rol_en_grupo === rol) || [];
@@ -409,22 +427,10 @@ export function GruposList() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="grupos-container">
-        <div className="loading">
-          <div className="spinner"></div>
-          <p>Cargando grupos...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="grupos-container">
       <div className="grupos-header">
         <div>
-          <h2>👥 Grupos de Trabajo</h2>
           {hasRole('docente') && (
             <div className="tabs-container">
               <button
@@ -460,12 +466,11 @@ export function GruposList() {
           )}
           <div className="search-container">
             <FaSearch className="search-icon" />
-            <input
-              type="text"
-              placeholder="Buscar por nombre, descripción, miembros..."
+            <SearchInput
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="search-input"
+              onChange={handleSearchChange}
+              inputRef={searchInputRef}
+              placeholder="Buscar por nombre, descripción, miembros..."
             />
             {searchTerm && (
               <button
@@ -481,16 +486,58 @@ export function GruposList() {
             <FaSync className={loading ? 'spinning' : ''} />
             <span>Actualizar</span>
           </button>
+          <select
+            value={activeTab}
+            onChange={(e) => setActiveTab(e.target.value as 'mis' | 'otras' | 'todas')}
+            disabled={loading}
+            className="tab-select"
+          >
+            <option value="mis">Mis Grupos</option>
+            <option value="otras">Otros Grupos</option>
+            <option value="todas">Todos los Grupos</option>
+          </select>
         </div>
         <div className="stats">
-          <div className="stat-card">
-            <span className="stat-number">{grupos.length}</span>
-            <span className="stat-label">Grupos totales</span>
+          <div className="stat-card stat-card-compact">
+            <span className="stat-number stat-number-compact">{grupos.length}</span>
+            <span className="stat-label stat-label-compact">Grupos totales</span>
           </div>
-          <div className="stat-card">
-            <span className="stat-number">{grupos.filter(g => g.activo).length}</span>
-            <span className="stat-label">Grupos activos</span>
+          <div className="stat-card stat-card-compact">
+            <span className="stat-number stat-number-compact">{grupos.filter(g => g.activo).length}</span>
+            <span className="stat-label stat-label-compact">Grupos activos</span>
           </div>
+          {(() => {
+            // Calcular estadísticas de estudiantes y docentes
+            const estudiantesSet = new Set<number>();
+            const docentesSet = new Set<number>();
+            const gruposConEstudiantes = new Set<number>();
+            const gruposConDocentes = new Set<number>();
+
+            grupos.forEach(grupo => {
+              grupo.miembros_grupo?.forEach(miembro => {
+                if (miembro.usuario.rol === 'estudiante') {
+                  estudiantesSet.add(miembro.usuario.id_usuario);
+                  gruposConEstudiantes.add(grupo.id_grupo);
+                } else if (miembro.usuario.rol === 'docente') {
+                  docentesSet.add(miembro.usuario.id_usuario);
+                  gruposConDocentes.add(grupo.id_grupo);
+                }
+              });
+            });
+
+            return (
+              <>
+                <div className="stat-card stat-card-compact">
+                  <span className="stat-number stat-number-compact">{estudiantesSet.size}</span>
+                  <span className="stat-label stat-label-compact">Estudiantes en {gruposConEstudiantes.size} grupo{gruposConEstudiantes.size !== 1 ? 's' : ''}</span>
+                </div>
+                <div className="stat-card stat-card-compact">
+                  <span className="stat-number stat-number-compact">{docentesSet.size}</span>
+                  <span className="stat-label stat-label-compact">Docentes en {gruposConDocentes.size} grupo{gruposConDocentes.size !== 1 ? 's' : ''}</span>
+                </div>
+              </>
+            );
+          })()}
         </div>
       </div>
 
@@ -501,7 +548,9 @@ export function GruposList() {
         onSuccess={loadGrupos}
       />
 
-      {grupos.length === 0 ? (
+      {loading && grupos.length === 0 ? (
+        <div className="grupos-list-loading">Cargando grupos...</div>
+      ) : grupos.length === 0 ? (
         <div className="empty-state">
           <p>No hay grupos registrados</p>
         </div>
@@ -590,6 +639,27 @@ export function GruposList() {
                               title="Modificar Miembros"
                             >
                               <FaEdit />
+                            </button>
+                          )}
+                          {hasRole('admin') && hasAccessLevel(1) && (
+                            <button
+                              onClick={async () => {
+                                if (!window.confirm(`¿Está seguro de que desea eliminar el grupo "${grupo.nombre}"?\n\nEsta acción no se puede deshacer.`)) {
+                                  return;
+                                }
+                                
+                                try {
+                                  await ApiService.deleteGrupo(grupo.id_grupo);
+                                  showToast('Grupo eliminado exitosamente', 'success');
+                                  await loadGrupos();
+                                } catch (err: any) {
+                                  showToast(`Error al eliminar grupo: ${err.message}`, 'error');
+                                }
+                              }}
+                              className="btn-icon btn-danger"
+                              title="Eliminar Grupo"
+                            >
+                              <FaTrash />
                             </button>
                           )}
                         </div>

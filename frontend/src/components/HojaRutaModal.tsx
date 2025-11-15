@@ -4,6 +4,7 @@ import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
 import type { HojaRuta } from '../types/tramite';
 import { FaPlus, FaEdit, FaTrash, FaCalendarAlt, FaUser, FaFileAlt, FaPrint } from 'react-icons/fa';
+import { formatDate, formatDateTime } from '../utils/dateFormatter';
 import './HojaRutaModal.css';
 
 interface Props {
@@ -167,15 +168,11 @@ export function HojaRutaModal({ idTramite, isOpen, onClose, onUpdate, tramiteInf
           yPosition += 6;
         }
 
-        const fechaInicio = new Date(tramiteInfo.fecha_inicio).toLocaleDateString('es-ES', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-        });
+        const fechaInicio = formatDate(tramiteInfo.fecha_inicio);
         doc.text(`Fecha de Inicio: ${fechaInicio}`, margin, yPosition);
         yPosition += 6;
 
-        doc.text(`Fecha de Impresión: ${new Date().toLocaleDateString('es-ES')}`, margin, yPosition);
+        doc.text(`Fecha de Impresión: ${formatDate(new Date())}`, margin, yPosition);
         yPosition += 10;
       }
 
@@ -201,11 +198,7 @@ export function HojaRutaModal({ idTramite, isOpen, onClose, onUpdate, tramiteInf
           // Fecha de actuación
           doc.setFontSize(10);
           doc.setFont('helvetica', 'bold');
-          const fechaActuacion = new Date(actuacion.fecha_actuacion).toLocaleDateString('es-ES', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-          });
+          const fechaActuacion = formatDate(actuacion.fecha_actuacion);
           doc.text(`${index + 1}. Fecha: ${fechaActuacion}`, margin, yPosition);
           yPosition += 5;
 
@@ -371,11 +364,7 @@ export function HojaRutaModal({ idTramite, isOpen, onClose, onUpdate, tramiteInf
                     <div className="actuacion-fecha">
                       <FaCalendarAlt />
                       <strong>
-                        {new Date(actuacion.fecha_actuacion).toLocaleDateString('es-ES', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                        })}
+                        {formatDate(actuacion.fecha_actuacion)}
                       </strong>
                     </div>
                     {canEdit(actuacion) && user?.rol === 'estudiante' && (
@@ -404,7 +393,7 @@ export function HojaRutaModal({ idTramite, isOpen, onClose, onUpdate, tramiteInf
                   </div>
                   <div className="actuacion-descripcion">{actuacion.descripcion}</div>
                   <div className="actuacion-timestamp">
-                    Registrado: {new Date(actuacion.created_at).toLocaleString('es-ES')}
+                    Registrado: {formatDateTime(actuacion.created_at)}
                   </div>
                 </div>
               ))}

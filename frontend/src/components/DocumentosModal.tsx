@@ -4,6 +4,7 @@ import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
 import type { DocumentoAdjunto } from '../types/tramite';
 import { FaPlus, FaTrash, FaDownload, FaFileAlt, FaUpload } from 'react-icons/fa';
+import { formatDate } from '../utils/dateFormatter';
 import './DocumentosModal.css';
 
 interface Props {
@@ -250,7 +251,7 @@ export function DocumentosModal({ idTramite, isOpen, onClose, onUpdate }: Props)
                         <div className="documento-meta">
                           <span>{formatFileSize(documento.tamano)}</span>
                           <span>•</span>
-                          <span>{new Date(documento.created_at).toLocaleDateString('es-ES')}</span>
+                          <span>{formatDate(documento.created_at)}</span>
                           <span>•</span>
                           <span>{documento.usuario?.nombre || 'Usuario desconocido'}</span>
                         </div>

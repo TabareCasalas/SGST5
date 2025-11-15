@@ -22,6 +22,8 @@ model Usuario {
   nivel_acceso  Int? // Para administradores: 1=administrativo (unificado), 3=sistema (null para otros roles)
   activo        Boolean  @default(true)
   semestre      String? // Para estudiantes
+  fecha_desactivacion_automatica DateTime? // Fecha en la que se desactivará automáticamente (para estudiantes)
+  debe_cambiar_password Boolean @default(false) // Indica si el usuario debe cambiar su contraseña en el próximo login
   refresh_token String? // Token JWT de refresco para sesiones persistentes
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
@@ -34,6 +36,25 @@ model Usuario {
   fichas_asignadas         Ficha[]            @relation("FichaDocente")
   notificaciones_recibidas Notificacion[]     @relation("NotificacionesRecibidas")
   notificaciones_enviadas  Notificacion[]     @relation("NotificacionesEnviadas")
+  solicitud_reactivacion   SolicitudReactivacion?
+  solicitudes_procesadas   SolicitudReactivacion[] @relation("SolicitudesProcesadas")
+}
+
+model SolicitudReactivacion {
+  id_solicitud        Int      @id @default(autoincrement())
+  id_usuario          Int      @unique
+  estado              String   @default("pendiente") // pendiente, aprobada, rechazada
+  motivo              String?  // Motivo opcional de la solicitud
+  respuesta           String?  // Respuesta del administrador
+  id_administrador    Int?     // Administrador que procesó la solicitud
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+
+  usuario         Usuario  @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
+  administrador   Usuario? @relation("SolicitudesProcesadas", fields: [id_administrador], references: [id_usuario])
+
+  @@index([estado])
+  @@index([created_at])
 }
 
 model Consultante {

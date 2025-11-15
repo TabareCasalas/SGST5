@@ -692,8 +692,49 @@
   display: flex;
   gap: 0.5rem;
   align-items: center;
-  justify-content: flex-start;
-  flex-wrap: wrap;
+}
+
+.btn-icon {
+  background: none;
+  border: none;
+  color: var(--primary-color);
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 4px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+}
+
+.btn-icon:hover {
+  background-color: var(--bg-secondary);
+  transform: scale(1.1);
+}
+
+.btn-icon.btn-edit {
+  color: #2563eb;
+}
+
+.btn-icon.btn-edit:hover {
+  background-color: #dbeafe;
+}
+
+.btn-icon.btn-success {
+  color: #10b981;
+}
+
+.btn-icon.btn-success:hover {
+  background-color: #d1fae5;
+}
+
+.btn-icon.btn-danger {
+  color: var(--danger-color, #dc3545);
+}
+
+.btn-icon.btn-danger:hover {
+  background-color: #fee;
 }
 
 .action-btn {

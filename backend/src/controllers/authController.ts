@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../lib/prisma';
+import { AuthRequest } from '../middleware/authMiddleware';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 const REFRESH_SECRET = process.env.REFRESH_SECRET || 'your-refresh-secret-change-in-production';
@@ -41,7 +42,23 @@ export const authController = {
 
       // Verificar que el usuario esté activo
       if (!usuario.activo) {
-        return res.status(403).json({ error: 'Usuario inactivo' });
+        // Verificar si tiene solicitud de reactivación
+        const solicitud = await prisma.solicitudReactivacion.findUnique({
+          where: { id_usuario: usuario.id_usuario },
+        });
+
+        // Si tiene una solicitud aprobada pero está inactivo, significa que fue desactivado nuevamente
+        // Permitir crear una nueva solicitud
+        const puedeSolicitar = !solicitud || 
+                               solicitud.estado === 'rechazada' || 
+                               (solicitud.estado === 'aprobada' && !usuario.activo);
+
+        return res.status(403).json({ 
+          error: 'Usuario inactivo',
+          puedeSolicitarReactivacion: puedeSolicitar,
+          tieneSolicitudPendiente: solicitud?.estado === 'pendiente',
+          tieneSolicitudAprobada: solicitud?.estado === 'aprobada' && usuario.activo, // Solo si está activo
+        });
       }
 
       // Verificar que el usuario tenga contraseña configurada
@@ -90,9 +107,90 @@ export const authController = {
         accessToken,
         refreshToken,
         usuario: usuarioSinPassword,
+        debeCambiarPassword: usuario.debe_cambiar_password || false,
       });
     } catch (error: any) {
       console.error('Error en login:', error);
+      res.status(500).json({ error: 'Error interno del servidor' });
+    }
+  },
+
+  /**
+   * Cambiar contraseña (requiere autenticación)
+   */
+  async cambiarPassword(req: AuthRequest, res: Response) {
+    try {
+      const { passwordActual, passwordNueva } = req.body;
+      const userId = req.user?.id;
+
+      if (!userId) {
+        return res.status(401).json({ error: 'Usuario no autenticado' });
+      }
+
+      if (!passwordActual || !passwordNueva) {
+        return res.status(400).json({ error: 'Contraseña actual y nueva contraseña son requeridas' });
+      }
+
+      // Obtener usuario
+      const usuario = await prisma.usuario.findUnique({
+        where: { id_usuario: userId },
+      });
+
+      if (!usuario || !usuario.password) {
+        return res.status(404).json({ error: 'Usuario no encontrado o sin contraseña configurada' });
+      }
+
+      // Verificar contraseña actual (excepto si debe cambiarla por primera vez)
+      if (!usuario.debe_cambiar_password) {
+        const passwordMatch = await bcrypt.compare(passwordActual, usuario.password);
+        if (!passwordMatch) {
+          return res.status(401).json({ error: 'Contraseña actual incorrecta' });
+        }
+      } else {
+        // Si debe cambiar la contraseña, verificar que la contraseña "actual" sea la temporal
+        const passwordMatch = await bcrypt.compare(passwordActual, usuario.password);
+        if (!passwordMatch) {
+          return res.status(401).json({ error: 'Contraseña temporal incorrecta' });
+        }
+      }
+
+      // Validar nueva contraseña
+      const { validarPassword } = await import('../utils/passwordGenerator');
+      const validacion = validarPassword(passwordNueva);
+      
+      if (!validacion.isValid) {
+        return res.status(400).json({ 
+          error: 'La contraseña no cumple con los requisitos de seguridad',
+          detalles: validacion.errores,
+        });
+      }
+
+      // Hashear nueva contraseña
+      const hashedNewPassword = await bcrypt.hash(passwordNueva, 10);
+
+      // Actualizar contraseña y marcar que ya no debe cambiarla
+      await prisma.usuario.update({
+        where: { id_usuario: userId },
+        data: {
+          password: hashedNewPassword,
+          debe_cambiar_password: false,
+        },
+      });
+
+      // Registrar auditoría
+      await prisma.auditoria.create({
+        data: {
+          id_usuario: userId,
+          tipo_entidad: 'auth',
+          accion: 'cambiar_password',
+          detalles: `Usuario ${usuario.nombre} cambió su contraseña`,
+          ip_address: req.ip || 'unknown',
+        },
+      });
+
+      res.json({ message: 'Contraseña cambiada exitosamente' });
+    } catch (error: any) {
+      console.error('Error al cambiar contraseña:', error);
       res.status(500).json({ error: 'Error interno del servidor' });
     }
   },

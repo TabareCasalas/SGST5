@@ -27,9 +27,10 @@ export interface AuthUser {
 
 interface AuthContextType {
   user: AuthUser | null;
-  login: (ci: string, password?: string) => Promise<void>;
+  login: (ci: string, password?: string) => Promise<{ debeCambiarPassword?: boolean; usuario?: any } | void>;
   logout: () => void;
   isAuthenticated: boolean;
+  isLoading: boolean;
   hasRole: (roles: UserRole | UserRole[]) => boolean;
   hasAccessLevel: (minLevel: number) => boolean;
   isAdminSistema: () => boolean;
@@ -41,6 +42,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Verificar si hay sesión guardada
@@ -54,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem('user');
       }
     }
+    setIsLoading(false);
   }, []);
 
   const login = async (ci: string, password?: string) => {
@@ -67,28 +70,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (!response.ok) {
         const error = await response.json();
+        // Si es error de usuario inactivo, incluir información adicional
+        if (error.error === 'Usuario inactivo') {
+          const errorObj = new Error(JSON.stringify(error));
+          throw errorObj;
+        }
         throw new Error(error.error || 'Error al iniciar sesión');
       }
 
       const data = await response.json();
       const usuario = data.usuario;
+      const debeCambiarPassword = data.debeCambiarPassword || false;
 
       // Verificar que el usuario esté activo
       if (!usuario.activo) {
         throw new Error('Usuario inactivo');
       }
 
-      // Mapear rol del usuario y determinar nivel_acceso
-      const rolMapeado = mapRolToUserRole(usuario.rol);
-      const nivelAcceso = usuario.nivel_acceso || getNivelAccesoFromRol(usuario.rol);
-
-      // Guardar tokens
+      // Guardar tokens SIEMPRE (incluso si debe cambiar la contraseña)
+      // El usuario necesita estar autenticado para cambiar su contraseña
       if (data.accessToken) {
         localStorage.setItem('accessToken', data.accessToken);
       }
       if (data.refreshToken) {
         localStorage.setItem('refreshToken', data.refreshToken);
       }
+
+      // Si debe cambiar la contraseña, retornar información especial
+      // pero los tokens ya están guardados para permitir el cambio
+      if (debeCambiarPassword) {
+        return { debeCambiarPassword: true, usuario };
+      }
+
+      // Mapear rol del usuario y determinar nivel_acceso
+      const rolMapeado = mapRolToUserRole(usuario.rol);
+      const nivelAcceso = usuario.nivel_acceso || getNivelAccesoFromRol(usuario.rol);
 
       // Mapear rol del usuario
       const authUser: AuthUser = {
@@ -162,7 +178,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user, 
       login, 
       logout, 
-      isAuthenticated, 
+      isAuthenticated,
+      isLoading,
       hasRole, 
       hasAccessLevel,
       isAdminSistema,

@@ -2,8 +2,6 @@
 # Este archivo excluye frontend y backend para correrlos localmente
 # Uso: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 
-version: '3.8'
-
 services:
   # Solo base de datos para desarrollo
   postgres:

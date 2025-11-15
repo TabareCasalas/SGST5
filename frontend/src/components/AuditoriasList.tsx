@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { ApiService } from '../services/api';
 import { useToast } from '../contexts/ToastContext';
 import { 
   FaHistory, FaSearch, FaTimes, FaFilter, FaUser, FaCalendarAlt,
   FaFileAlt, FaUsers, FaUserTie, FaCheckCircle, FaEdit, FaTrash, FaFilePdf
 } from 'react-icons/fa';
+import { SearchInput } from './SearchInput';
+import { formatDateTime, formatDate } from '../utils/dateFormatter';
 import './AuditoriasList.css';
 
 interface Auditoria {
@@ -31,6 +33,7 @@ export function AuditoriasList() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState<string>('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [filtros, setFiltros] = useState({
     tipo_entidad: '',
     accion: '',
@@ -75,7 +78,10 @@ export function AuditoriasList() {
     }
   };
 
-  const loadAuditorias = async () => {
+  const loadAuditorias = useCallback(async () => {
+    // Guardar si el input tenía foco antes de cargar
+    const hadFocus = document.activeElement === searchInputRef.current;
+    
     try {
       setLoading(true);
       setError(null);
@@ -98,8 +104,20 @@ export function AuditoriasList() {
       setError(err.message);
     } finally {
       setLoading(false);
+      // Restaurar el foco si lo tenía antes
+      if (hadFocus && searchInputRef.current) {
+        setTimeout(() => {
+          searchInputRef.current?.focus();
+          const length = searchInputRef.current.value.length;
+          searchInputRef.current.setSelectionRange(length, length);
+        }, 0);
+      }
     }
-  };
+  }, [debouncedSearchTerm, filtros, pagina, limite]);
+
+  useEffect(() => {
+    loadAuditorias();
+  }, [loadAuditorias]);
 
   const getTipoIcon = (tipo: string) => {
     switch (tipo) {
@@ -133,15 +151,7 @@ export function AuditoriasList() {
   };
 
   const formatFecha = (fecha: string) => {
-    const date = new Date(fecha);
-    return date.toLocaleString('es-ES', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    });
+    return formatDateTime(fecha);
   };
 
   const limpiarFiltros = () => {
@@ -186,13 +196,7 @@ export function AuditoriasList() {
       // Información del reporte
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
-      const fechaActual = new Date().toLocaleDateString('es-ES', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
+      const fechaActual = formatDateTime(new Date());
       doc.text(`Fecha de generación: ${fechaActual}`, margin, yPosition);
       yPosition += 6;
 
@@ -453,10 +457,6 @@ export function AuditoriasList() {
     <div className="auditorias-container">
       <div className="auditorias-header">
         <div className="header-top">
-          <h2>
-            <FaHistory />
-            Auditorías del Sistema
-          </h2>
           <div className="header-actions">
             <div className="export-buttons">
               <button
@@ -489,12 +489,11 @@ export function AuditoriasList() {
         {/* Barra de búsqueda */}
         <div className="search-bar">
           <FaSearch className="search-icon" />
-          <input
-            type="text"
-            placeholder="Buscar por usuario, acción, detalles, IP..."
+          <SearchInput
+            ref={searchInputRef}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="search-input"
+            placeholder="Buscar por usuario, acción, detalles, IP..."
           />
           {searchTerm && (
             <button
