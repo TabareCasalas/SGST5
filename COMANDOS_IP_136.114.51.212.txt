@@ -1,0 +1,26 @@
+# ============================================
+# COMANDOS ESPECÍFICOS PARA IP: 136.114.51.212
+# ============================================
+
+# 1. Corregir credenciales de PostgreSQL (si aún no lo hiciste)
+cd /var/www/sgst
+chmod +x fix-database.sh
+./fix-database.sh
+# Cuando te pregunte la contraseña, presiona Enter para usar la por defecto
+
+# 2. Actualizar frontend/.env con tu IP
+cd /var/www/sgst/frontend
+echo "VITE_API_URL=http://136.114.51.212:3001/api" > .env
+
+# 3. Recompilar frontend con la IP correcta
+npm run build
+
+# 4. Continuar con el despliegue
+cd /var/www/sgst
+chmod +x deploy-resto.sh
+./deploy-resto.sh
+# Cuando te pregunte:
+# - ¿Tienes un dominio? → n
+# - Ingresa la IP pública → 136.114.51.212
+# - ¿Contraseña por defecto PostgreSQL? → s (o n si usaste otra)
+

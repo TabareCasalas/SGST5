@@ -6,7 +6,7 @@ Esta guía te ayudará a desplegar la aplicación SGST en una VM de Google Cloud
 
 - VM de Google Cloud con Ubuntu 20.04 o superior
 - Acceso SSH a la VM
-- Acceso al repositorio de GitHub
+- Acceso al repositorio de GitHub: https://github.com/TabareCasalas/SGST5
 - Dominio o IP pública (opcional, pero recomendado)
 
 ## 🔧 Paso 1: Conectarse a la VM
@@ -83,10 +83,10 @@ sudo systemctl enable postgresql
 sudo mkdir -p /var/www
 cd /var/www
 
-# Clonar el repositorio (reemplaza con tu URL de GitHub)
-sudo git clone https://github.com/TU_USUARIO/TU_REPOSITORIO.git sgst
+# Clonar el repositorio
+sudo git clone https://github.com/TabareCasalas/SGST5.git sgst
 # o si es privado:
-# sudo git clone git@github.com:TU_USUARIO/TU_REPOSITORIO.git sgst
+# sudo git clone git@github.com:TabareCasalas/SGST5.git sgst
 
 # Cambiar propietario
 sudo chown -R $USER:$USER /var/www/sgst
@@ -315,7 +315,7 @@ Cuando necesites actualizar la aplicación:
 cd /var/www/sgst
 
 # Obtener los últimos cambios
-git pull origin main  # o la rama que uses
+git pull origin main
 
 # Backend
 cd backend
