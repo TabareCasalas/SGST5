@@ -178,6 +178,10 @@ fi
 # Crear base de datos y usuario
 log "${BLUE}Configurando base de datos...${NC}"
 
+# Asegurar que PostgreSQL está corriendo
+sudo systemctl start postgresql || true
+sleep 2
+
 sudo -u postgres psql << EOSQL > /dev/null 2>&1 || true
 DROP DATABASE IF EXISTS sgst_db;
 DROP USER IF EXISTS sgst_user;
@@ -188,7 +192,10 @@ ALTER USER sgst_user CREATEDB;
 EOSQL
 
 # Configurar PostgreSQL para aceptar conexiones locales
-sudo sed -i "s/#listen_addresses = 'localhost'/listen_addresses = 'localhost'/" /etc/postgresql/*/main/postgresql.conf || true
+# Esperar un momento para que PostgreSQL termine de inicializarse
+sleep 2
+sudo systemctl start postgresql || true
+sudo sed -i "s/#listen_addresses = 'localhost'/listen_addresses = 'localhost'/" /etc/postgresql/*/main/postgresql.conf 2>/dev/null || true
 
 log "${GREEN}✓ PostgreSQL configurado${NC}"
 
