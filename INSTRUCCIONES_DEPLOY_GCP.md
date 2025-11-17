@@ -120,12 +120,19 @@ El script de deployment puede clonar automáticamente el repositorio, pero si pr
 
 ```bash
 # En la VM (terminal SSH del navegador)
+# Primero, instalar Git si no está instalado
+sudo apt-get update
+sudo apt-get install -y git
+
+# Clonar el proyecto
 cd ~
 git clone https://github.com/TabareCasalas/SGST5
 cd SGST5
 ```
 
-**Nota**: El script `deploy-gcp-vm.sh` también puede clonar el repositorio automáticamente si no existe en el directorio de destino.
+**Nota**: 
+- El script `deploy-gcp-vm.sh` instalará Git automáticamente si no está instalado
+- El script también puede clonar el repositorio automáticamente si no existe en el directorio de destino
 
 ### Opción B: Subir archivos manualmente
 

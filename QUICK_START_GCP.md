@@ -49,6 +49,10 @@ gcloud compute firewall-rules create allow-https \
 3. Ejecuta:
 
 ```bash
+# Instalar Git primero (si no está instalado)
+sudo apt-get update
+sudo apt-get install -y git
+
 # Clonar el proyecto
 git clone https://github.com/TabareCasalas/SGST5
 cd SGST5
@@ -57,6 +61,8 @@ cd SGST5
 chmod +x deploy-gcp-vm.sh
 ./deploy-gcp-vm.sh
 ```
+
+**Nota**: El script también instalará Git automáticamente si no está instalado, pero puedes instalarlo manualmente antes si prefieres.
 
 **Opción B: El script puede clonar automáticamente**
 

@@ -66,7 +66,16 @@ section "Paso 2: Instalando dependencias del sistema"
 
 # Instalar herramientas básicas
 log "${BLUE}Instalando herramientas básicas...${NC}"
-sudo apt-get install -y -qq curl wget git build-essential software-properties-common
+sudo apt-get install -y -qq curl wget build-essential software-properties-common
+
+# Instalar Git (si no está instalado)
+if ! command_exists git; then
+    log "${BLUE}Instalando Git...${NC}"
+    sudo apt-get install -y -qq git
+    log "${GREEN}✓ Git instalado${NC}"
+else
+    log "${GREEN}✓ Git ya está instalado: $(git --version)${NC}"
+fi
 
 # Instalar Node.js 18.x
 if ! command_exists node; then
@@ -156,6 +165,18 @@ sudo chown -R $USER:$USER "$APP_DIR"
 # URL del repositorio por defecto
 DEFAULT_REPO_URL="https://github.com/TabareCasalas/SGST5"
 
+# Verificar que Git está instalado antes de continuar
+if ! command_exists git; then
+    log "${RED}Error: Git no está instalado${NC}"
+    log "${BLUE}Instalando Git...${NC}"
+    sudo apt-get update -qq
+    sudo apt-get install -y -qq git || {
+        log "${RED}Error: No se pudo instalar Git${NC}"
+        exit 1
+    }
+    log "${GREEN}✓ Git instalado${NC}"
+fi
+
 # Detectar si estamos en un directorio de proyecto Git
 CURRENT_DIR=$(pwd)
 if [ -d "$CURRENT_DIR/.git" ] && [ -f "$CURRENT_DIR/backend/package.json" ]; then
@@ -180,7 +201,7 @@ else
         log "${BLUE}Clonando repositorio desde $REPO_URL...${NC}"
         git clone "$REPO_URL" "$APP_DIR" || {
             log "${RED}Error: No se pudo clonar el repositorio${NC}"
-            log "${YELLOW}Verifica que Git esté instalado y que tengas acceso al repositorio${NC}"
+            log "${YELLOW}Verifica que tengas acceso al repositorio${NC}"
             exit 1
         }
         cd "$APP_DIR"
