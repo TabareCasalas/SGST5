@@ -1,4 +1,6 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+// En producción, usar ruta relativa para que Nginx haga el proxy
+// En desarrollo, usar la URL completa
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:3001/api');
 
 export class ApiService {
   // Helper para obtener headers con token
