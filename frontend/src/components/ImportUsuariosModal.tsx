@@ -92,7 +92,8 @@ export function ImportUsuariosModal({ isOpen, onClose, onSuccess }: Props) {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/usuarios/importar`, {
+      const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:3001/api');
+      const response = await fetch(`${API_URL}/usuarios/importar`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
