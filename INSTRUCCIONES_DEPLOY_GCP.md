@@ -180,9 +180,11 @@ cd ~
 # Dar permisos de ejecución
 chmod +x deploy-gcp-vm.sh
 
-# Ejecutar el script
+# Ejecutar el script (IMPORTANTE: usa ./ antes del nombre del script)
 ./deploy-gcp-vm.sh
 ```
+
+**Nota importante**: En Linux, para ejecutar un script en el directorio actual, debes usar `./` antes del nombre del script. Si solo escribes `deploy-gcp-vm.sh`, el sistema buscará el comando en las rutas del PATH, no en el directorio actual.
 
 **Si ejecutas el script desde el directorio del proyecto clonado**, el script detectará el proyecto y lo moverá a `/var/www/sgst`.
 

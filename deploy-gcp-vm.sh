@@ -20,11 +20,20 @@ APP_NAME="sgst"
 APP_DIR="/var/www/$APP_NAME"
 BACKEND_DIR="$APP_DIR/backend"
 FRONTEND_DIR="$APP_DIR/frontend"
+
+# Usar directorio de log en home si no se puede escribir en /var/log
 LOG_FILE="/var/log/sgst-deploy.log"
+if ! touch "$LOG_FILE" 2>/dev/null; then
+    LOG_FILE="$HOME/sgst-deploy.log"
+    touch "$LOG_FILE" 2>/dev/null || LOG_FILE=""
+fi
 
 # Función para logging
 log() {
-    echo -e "$1" | tee -a "$LOG_FILE"
+    echo -e "$1"
+    if [ -n "$LOG_FILE" ] && [ -w "$(dirname "$LOG_FILE")" ] 2>/dev/null; then
+        echo -e "$1" >> "$LOG_FILE" 2>/dev/null || true
+    fi
 }
 
 # Función para mostrar secciones
@@ -47,6 +56,7 @@ get_public_ip() {
 
 # Iniciar logging
 log "${GREEN}Iniciando deployment de SGST - $(date)${NC}"
+log "${BLUE}Log file: $LOG_FILE${NC}"
 
 # ============================================
 # PASO 1: Verificar y actualizar sistema
@@ -528,6 +538,9 @@ if [ -n "$DOMAIN" ]; then
 fi
 
 log "${YELLOW}Archivo de log completo:${NC} $LOG_FILE"
+if [ "$LOG_FILE" != "/var/log/sgst-deploy.log" ]; then
+    log "${YELLOW}Nota: El log se guardó en $LOG_FILE (no se pudo escribir en /var/log)${NC}"
+fi
 echo ""
 log "${GREEN}¡Despliegue completado exitosamente!${NC}"
 

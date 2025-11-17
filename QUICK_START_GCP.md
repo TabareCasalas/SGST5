@@ -59,8 +59,10 @@ sudo apt-get install -y git
 git clone https://github.com/TabareCasalas/SGST5
 cd SGST5
 
-# Hacer ejecutable y correr
+# Hacer ejecutable el script
 chmod +x deploy-gcp-vm.sh
+
+# Ejecutar el script (IMPORTANTE: usa ./ antes del nombre)
 ./deploy-gcp-vm.sh
 ```
 
@@ -75,6 +77,7 @@ Si prefieres que el script clone el repositorio automáticamente:
 git clone https://github.com/TabareCasalas/SGST5
 cd SGST5
 chmod +x deploy-gcp-vm.sh
+# Ejecutar con ./ (punto y barra antes del nombre)
 ./deploy-gcp-vm.sh
 # Cuando pregunte, presiona Enter para usar el repositorio por defecto
 ```
