@@ -8,6 +8,9 @@ Este documento contiene las instrucciones completas para desplegar el proyecto S
 2. **gcloud CLI** instalado en tu máquina local (opcional, pero recomendado)
 3. **Repositorio Git** del proyecto (o acceso a los archivos del proyecto)
 4. **API Key de Resend** (opcional, para envío de correos)
+5. **Permisos sudo** en la VM - **IMPORTANTE**: El script requiere permisos de administrador
+
+> ⚠️ **Si no tienes permisos sudo**, consulta el archivo `SOLUCION_PERMISOS_SUDO.md` antes de continuar.
 
 ## 🔧 Paso 1: Crear la VM en Google Cloud
 

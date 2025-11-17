@@ -12,6 +12,8 @@ Este proyecto incluye scripts automatizados para desplegar SGST en una VM de Ubu
 
 ## ⚡ Inicio Rápido (3 pasos)
 
+> **⚠️ IMPORTANTE**: Asegúrate de que tu usuario tenga permisos `sudo`. Si recibes errores de permisos, consulta `SOLUCION_PERMISOS_SUDO.md`
+
 ### 1. Crear VM en Google Cloud
 
 ```bash
@@ -125,6 +127,12 @@ pm2 status
 sudo systemctl status nginx
 sudo systemctl status postgresql
 ```
+
+---
+
+## ⚠️ Problema con Permisos Sudo?
+
+Si recibes el error `sudo-rs: I'm sorry tabare_casalas. I'm afraid I can't do that`, consulta el archivo **`SOLUCION_PERMISOS_SUDO.md`** para soluciones.
 
 ---
 
