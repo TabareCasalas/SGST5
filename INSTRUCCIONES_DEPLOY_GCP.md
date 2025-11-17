@@ -438,6 +438,7 @@ sudo crontab -e
    - Mantén el sistema actualizado: `sudo apt update && sudo apt upgrade`
    - Configura SSL/HTTPS para producción
    - Considera usar un firewall más restrictivo
+   - El script configura automáticamente CORS para tu dominio/IP
 
 2. **Rendimiento**:
    - Para producción, considera usar un balanceador de carga

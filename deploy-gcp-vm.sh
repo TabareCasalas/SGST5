@@ -218,6 +218,13 @@ fi
 
 # Crear .env para backend
 log "${BLUE}Creando backend/.env...${NC}"
+# Configurar CORS origin
+if [ -n "$DOMAIN" ]; then
+    CORS_ORIGIN="https://$DOMAIN,http://$DOMAIN"
+else
+    CORS_ORIGIN="http://$PUBLIC_IP"
+fi
+
 cat > "$BACKEND_DIR/.env" << EOF
 NODE_ENV=production
 PORT=3001
@@ -227,6 +234,7 @@ REFRESH_SECRET=$REFRESH_SECRET
 RESEND_API_KEY=$RESEND_API_KEY
 RESEND_FROM_EMAIL=$RESEND_FROM_EMAIL
 RESEND_FROM_NAME=SGST Sistema
+CORS_ORIGIN=$CORS_ORIGIN
 EOF
 
 # Crear .env para frontend
