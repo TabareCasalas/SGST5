@@ -59,6 +59,35 @@ log "${GREEN}Iniciando deployment de SGST - $(date)${NC}"
 log "${BLUE}Log file: $LOG_FILE${NC}"
 
 # ============================================
+# VERIFICACIÓN PREVIA: Permisos sudo
+# ============================================
+section "Verificando permisos"
+
+log "${BLUE}Verificando permisos sudo...${NC}"
+if ! sudo -n true 2>/dev/null; then
+    # Intentar con prompt
+    if ! sudo -v 2>/dev/null; then
+        log "${RED}✗ ERROR: No tienes permisos sudo${NC}"
+        log ""
+        log "${YELLOW}Este script requiere permisos de administrador (sudo) para:${NC}"
+        log "  - Instalar paquetes del sistema (Node.js, PostgreSQL, Nginx, etc.)"
+        log "  - Configurar servicios del sistema"
+        log "  - Crear directorios en /var/www/"
+        log "  - Configurar Nginx y PostgreSQL"
+        log ""
+        log "${CYAN}Soluciones:${NC}"
+        log "  1. Verifica que tu usuario tenga permisos sudo: ${YELLOW}sudo whoami${NC}"
+        log "  2. Si no tienes sudo, consulta: ${YELLOW}SOLUCION_PERMISOS_SUDO.md${NC}"
+        log "  3. O recrea la VM usando el usuario por defecto de Google Cloud"
+        log ""
+        log "${RED}El script no puede continuar sin permisos sudo.${NC}"
+        exit 1
+    fi
+fi
+
+log "${GREEN}✓ Permisos sudo verificados${NC}"
+
+# ============================================
 # PASO 1: Verificar y actualizar sistema
 # ============================================
 section "Paso 1: Actualizando sistema"
