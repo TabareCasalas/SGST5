@@ -153,29 +153,44 @@ section "Paso 4: Preparando directorio de la aplicación"
 sudo mkdir -p "$APP_DIR"
 sudo chown -R $USER:$USER "$APP_DIR"
 
-# Si el proyecto ya existe, hacer backup
-if [ -d "$APP_DIR/.git" ]; then
-    log "${YELLOW}Proyecto existente detectado. Actualizando...${NC}"
+# URL del repositorio por defecto
+DEFAULT_REPO_URL="https://github.com/TabareCasalas/SGST5"
+
+# Detectar si estamos en un directorio de proyecto Git
+CURRENT_DIR=$(pwd)
+if [ -d "$CURRENT_DIR/.git" ] && [ -f "$CURRENT_DIR/backend/package.json" ]; then
+    log "${GREEN}✓ Proyecto Git detectado en el directorio actual${NC}"
+    log "${BLUE}Copiando proyecto a $APP_DIR...${NC}"
+    # Copiar el proyecto al directorio de destino
+    cp -r "$CURRENT_DIR"/* "$APP_DIR"/ 2>/dev/null || true
+    cp -r "$CURRENT_DIR"/.* "$APP_DIR"/ 2>/dev/null || true
+    cd "$APP_DIR"
+elif [ -d "$APP_DIR/.git" ]; then
+    log "${YELLOW}Proyecto existente detectado en $APP_DIR. Actualizando...${NC}"
     cd "$APP_DIR"
     git pull || log "${YELLOW}Advertencia: No se pudo actualizar desde git${NC}"
 else
     # Solicitar información sobre el repositorio
-    read -p "¿Tienes un repositorio Git? (s/n): " tiene_repo
+    read -p "¿Clonar desde Git? (s/n) [s]: " tiene_repo
+    tiene_repo=${tiene_repo:-s}
+    
     if [ "$tiene_repo" = "s" ] || [ "$tiene_repo" = "S" ]; then
-        read -p "Ingresa la URL del repositorio Git: " REPO_URL
-        log "${BLUE}Clonando repositorio...${NC}"
+        read -p "URL del repositorio Git [$DEFAULT_REPO_URL]: " REPO_URL
+        REPO_URL=${REPO_URL:-$DEFAULT_REPO_URL}
+        log "${BLUE}Clonando repositorio desde $REPO_URL...${NC}"
         git clone "$REPO_URL" "$APP_DIR" || {
             log "${RED}Error: No se pudo clonar el repositorio${NC}"
+            log "${YELLOW}Verifica que Git esté instalado y que tengas acceso al repositorio${NC}"
             exit 1
         }
+        cd "$APP_DIR"
     else
-        log "${YELLOW}No se proporcionó repositorio. Asegúrate de copiar los archivos a $APP_DIR${NC}"
+        log "${YELLOW}No se clonará desde Git. Asegúrate de copiar los archivos a $APP_DIR${NC}"
         log "${YELLOW}Presiona Enter cuando hayas copiado los archivos...${NC}"
         read
+        cd "$APP_DIR"
     fi
 fi
-
-cd "$APP_DIR"
 
 log "${GREEN}✓ Directorio de aplicación preparado${NC}"
 

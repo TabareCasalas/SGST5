@@ -42,12 +42,15 @@ gcloud compute firewall-rules create allow-https \
 
 ### 3. Ejecutar Script de Deployment
 
-```bash
-# Conectarse a la VM
-gcloud compute ssh sgst-vm --zone=us-central1-a
+**Opción A: Usando SSH del navegador (Recomendado)**
 
-# Clonar o subir el proyecto
-git clone TU_REPOSITORIO_URL
+1. En [Google Cloud Console](https://console.cloud.google.com/compute/instances), haz clic en **SSH** en tu VM
+2. Se abrirá una terminal en el navegador
+3. Ejecuta:
+
+```bash
+# Clonar el proyecto
+git clone https://github.com/TabareCasalas/SGST5
 cd SGST5
 
 # Hacer ejecutable y correr
@@ -55,11 +58,24 @@ chmod +x deploy-gcp-vm.sh
 ./deploy-gcp-vm.sh
 ```
 
+**Opción B: El script puede clonar automáticamente**
+
+Si prefieres que el script clone el repositorio automáticamente:
+
+```bash
+# Descargar solo el script (o clonar y ejecutar desde otro directorio)
+git clone https://github.com/TabareCasalas/SGST5
+cd SGST5
+chmod +x deploy-gcp-vm.sh
+./deploy-gcp-vm.sh
+# Cuando pregunte, presiona Enter para usar el repositorio por defecto
+```
+
 El script te pedirá:
-- Contraseña de PostgreSQL
-- URL del repositorio (si no clonaste antes)
-- Dominio o IP pública
-- API Key de Resend (opcional)
+- **Contraseña de PostgreSQL** (Enter para usar `sgst_password`)
+- **Clonar desde Git** (Enter para usar `https://github.com/TabareCasalas/SGST5`)
+- **Dominio o IP pública** (Enter para detectar automáticamente)
+- **API Key de Resend** (opcional, Enter para omitir)
 
 ## ✅ Verificar
 

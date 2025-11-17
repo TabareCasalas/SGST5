@@ -57,10 +57,14 @@ apt-get install -y git'
 
 ## 🔐 Paso 2: Conectarse a la VM
 
-### Opción A: SSH desde Google Cloud Console
+### Opción A: SSH desde Google Cloud Console (Recomendado)
 
-1. En la lista de VM instances, encuentra tu instancia
-2. Haz clic en **SSH** (se abrirá una ventana de terminal en el navegador)
+1. Ve a [Google Cloud Console](https://console.cloud.google.com/compute/instances)
+2. En la lista de VM instances, encuentra tu instancia
+3. Haz clic en el botón **SSH** (se abrirá una ventana de terminal en el navegador)
+4. Se abrirá una terminal interactiva directamente en tu navegador - ¡listo para usar!
+
+**Nota**: El SSH del navegador funciona exactamente igual que un SSH tradicional. Todos los comandos funcionan normalmente.
 
 ### Opción B: SSH desde terminal local
 
@@ -108,18 +112,20 @@ gcloud compute firewall-rules create allow-https \
   --target-tags sgst-server
 ```
 
-## 📥 Paso 4: Subir el script de deployment
+## 📥 Paso 4: Clonar el proyecto
 
-### Opción A: Clonar desde Git (Recomendado)
+### Clonar desde Git (Recomendado)
 
-Si tu proyecto está en un repositorio Git:
+El script de deployment puede clonar automáticamente el repositorio, pero si prefieres hacerlo manualmente:
 
 ```bash
-# En la VM
+# En la VM (terminal SSH del navegador)
 cd ~
-git clone TU_REPOSITORIO_URL
-cd SGST5  # o el nombre de tu repositorio
+git clone https://github.com/TabareCasalas/SGST5
+cd SGST5
 ```
+
+**Nota**: El script `deploy-gcp-vm.sh` también puede clonar el repositorio automáticamente si no existe en el directorio de destino.
 
 ### Opción B: Subir archivos manualmente
 
@@ -155,6 +161,12 @@ chmod +x deploy-gcp-vm.sh
 ## 🚀 Paso 5: Ejecutar el script de deployment
 
 ```bash
+# Si clonaste el repositorio manualmente
+cd ~/SGST5
+
+# O si el script lo clonará automáticamente, ve al directorio donde quieres que se instale
+cd ~
+
 # Dar permisos de ejecución
 chmod +x deploy-gcp-vm.sh
 
@@ -162,12 +174,16 @@ chmod +x deploy-gcp-vm.sh
 ./deploy-gcp-vm.sh
 ```
 
+**Si ejecutas el script desde el directorio del proyecto clonado**, el script detectará el proyecto y lo moverá a `/var/www/sgst`.
+
+**Si ejecutas el script desde otro directorio**, el script te preguntará si quieres clonar el repositorio (por defecto usará `https://github.com/TabareCasalas/SGST5`).
+
 El script te pedirá:
-1. **Contraseña de PostgreSQL**: Ingresa una contraseña segura (o presiona Enter para usar la predeterminada)
-2. **Repositorio Git**: Si no clonaste antes, puedes proporcionar la URL del repositorio
+1. **Contraseña de PostgreSQL**: Ingresa una contraseña segura (o presiona Enter para usar `sgst_password`)
+2. **Clonar desde Git**: Presiona Enter para usar el repositorio por defecto, o ingresa otra URL
 3. **Dominio o IP**: 
    - Si tienes un dominio, ingrésalo (ej: `sgst.ejemplo.com`)
-   - Si no, ingresa la IP pública de la VM
+   - Si no, ingresa la IP pública de la VM (o presiona Enter para detectarla automáticamente)
 4. **RESEND_API_KEY**: Tu API key de Resend (opcional, presiona Enter para omitir)
 
 El script automatizará:
