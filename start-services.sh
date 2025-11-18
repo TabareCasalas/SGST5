@@ -27,6 +27,47 @@ if [ ! -d "$APP_DIR" ]; then
     exit 1
 fi
 
+cd "$APP_DIR"
+
+# Preguntar si quiere actualizar el código
+echo -e "${YELLOW}¿Quieres actualizar el código desde Git? (s/n) [s]:${NC} "
+read -r actualizar_codigo
+actualizar_codigo=${actualizar_codigo:-s}
+
+if [ "$actualizar_codigo" = "s" ] || [ "$actualizar_codigo" = "S" ]; then
+    echo -e "${BLUE}0. Actualizando código desde Git...${NC}"
+    if [ -d ".git" ]; then
+        git pull || {
+            echo -e "  ${YELLOW}⚠${NC} Error al hacer git pull, continuando con el código actual..."
+        }
+        echo -e "  ${GREEN}✓${NC} Código actualizado"
+        
+        # Preguntar si quiere recompilar
+        echo -e "${YELLOW}¿Quieres recompilar backend y frontend? (s/n) [s]:${NC} "
+        read -r recompilar
+        recompilar=${recompilar:-s}
+        
+        if [ "$recompilar" = "s" ] || [ "$recompilar" = "S" ]; then
+            echo -e "${BLUE}  → Recompilando backend...${NC}"
+            cd "$APP_DIR/backend"
+            npm install --silent
+            npm run build
+            npx prisma generate
+            npx prisma migrate deploy || true
+            echo -e "  ${GREEN}✓${NC} Backend recompilado"
+            
+            echo -e "${BLUE}  → Recompilando frontend...${NC}"
+            cd "$APP_DIR/frontend"
+            npm install --silent
+            npm run build
+            echo -e "  ${GREEN}✓${NC} Frontend recompilado"
+        fi
+    else
+        echo -e "  ${YELLOW}⚠${NC} No se encontró repositorio Git en $APP_DIR"
+    fi
+    echo ""
+fi
+
 # 1. Iniciar PostgreSQL
 echo -e "${BLUE}1. Iniciando PostgreSQL...${NC}"
 if sudo systemctl is-active --quiet postgresql; then
