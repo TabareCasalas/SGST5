@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import type { JSX } from 'react';
 import { FaTimes, FaCheckCircle, FaClock, FaSync, FaBan } from 'react-icons/fa';
 import { ApiService } from '../services/api';
 import { useToast } from '../contexts/ToastContext';

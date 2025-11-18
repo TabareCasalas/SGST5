@@ -545,30 +545,43 @@ export const tramiteController = {
   // Enviar notificación
   async notificar(req: Request, res: Response) {
     try {
-      const { id_tramite, tipo_notificacion, mensaje } = req.body;
+      const { id_tramite, tipo_notificacion, mensaje, id_usuario } = req.body;
 
-      if (!id_tramite || !tipo_notificacion || !mensaje) {
+      if (!id_tramite || !mensaje) {
         return res.status(400).json({
-          error: 'id_tramite, tipo_notificacion y mensaje son requeridos',
+          error: 'id_tramite y mensaje son requeridos',
         });
       }
 
-      // Verificar que el trámite existe
+      // Verificar que el trámite existe y obtener el consultante
       const tramite = await prisma.tramite.findUnique({
         where: { id_tramite },
+        include: {
+          consultante: {
+            include: {
+              usuario: true,
+            },
+          },
+        },
       });
 
       if (!tramite) {
         return res.status(404).json({ error: 'Trámite no encontrado' });
       }
 
+      // Usar id_usuario del body o del consultante del trámite
+      const usuarioDestinatario = id_usuario || tramite.consultante.id_usuario;
+
       // Crear la notificación en la base de datos
       const notificacion = await prisma.notificacion.create({
         data: {
+          id_usuario: usuarioDestinatario,
           id_tramite,
-          tipo_notificacion,
+          titulo: `Notificación de trámite ${tramite.num_carpeta}`,
           mensaje,
-          enviado: true,
+          tipo: (tipo_notificacion as 'info' | 'success' | 'warning' | 'error') || 'info',
+          tipo_entidad: 'tramite',
+          id_entidad: id_tramite,
         },
       });
 

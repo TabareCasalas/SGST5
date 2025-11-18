@@ -304,11 +304,10 @@ export function GruposList() {
       
       // Filtrar asistentes: excluir al responsable actual de los deseados
       const asistentesIdsFiltrados = asistentesIds
-        .filter(id => id !== responsableId.toString())
-        .map(id => parseInt(id));
+        .filter(id => id !== responsableId);
       
       // Si el responsable anterior fue convertido a asistente pero no está en la lista deseada, eliminarlo
-      if (responsableAnteriorId && !esResponsableActual && !asistentesIds.includes(responsableAnteriorId.toString())) {
+      if (responsableAnteriorId && !esResponsableActual && !asistentesIds.includes(responsableAnteriorId)) {
         const responsableAnteriorComoAsistente = asistentesActualesRecargados.find(
           (a: UsuarioGrupo) => a.usuario.id_usuario === responsableAnteriorId
         );

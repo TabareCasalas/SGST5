@@ -342,7 +342,7 @@ export function UsuariosList() {
                               >
                                 <FaEdit />
                               </button>
-                              {usuario.id_usuario === user?.id && usuario.activo ? (
+                              {usuario.id_usuario === user?.id_usuario && usuario.activo ? (
                                 <span className="text-muted" title="No puede desactivar su propia cuenta">
                                   -
                                 </span>
@@ -355,7 +355,7 @@ export function UsuariosList() {
                                   {usuario.activo ? <FaTimesCircle /> : <FaCheckCircle />}
                                 </button>
                               )}
-                              {usuario.id_usuario !== user?.id && (
+                              {usuario.id_usuario !== user?.id_usuario && (
                                 <button
                                   onClick={() => {
                                     setUsuarioEliminar(usuario);

@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef, memo } from 'react';
+import type { JSX } from 'react';
 import { ApiService } from '../services/api';
 import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -370,7 +371,7 @@ export function FichasList() {
           <div className="search-container">
             <FaSearch className="search-icon" />
             <SearchInput
-              ref={searchInputRef}
+              inputRef={searchInputRef}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Buscar por número, consultante, docente, tema..."
