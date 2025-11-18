@@ -1,5 +1,9 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 
+// En producción, usar ruta relativa para que Nginx haga el proxy
+// En desarrollo, usar la URL completa
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:3001/api');
+
 export type UserRole = 'admin' | 'docente' | 'estudiante' | 'consultante';
 
 export interface AuthUser {
@@ -62,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (ci: string, password?: string) => {
     try {
       // Usar autenticación real del backend
-      const response = await fetch('http://localhost:3001/api/auth/login', {
+      const response = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ci, password: password || 'password123' }), // Usar contraseña por defecto si no se proporciona
@@ -135,7 +139,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const refreshToken = localStorage.getItem('refreshToken');
       if (refreshToken) {
         try {
-          await fetch('http://localhost:3001/api/auth/logout', {
+          await fetch(`${API_URL}/auth/logout`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ refreshToken }),
