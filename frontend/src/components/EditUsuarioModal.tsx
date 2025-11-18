@@ -5,8 +5,8 @@ interface Usuario {
   id_usuario: number;
   nombre: string;
   ci: string;
-  domicilio: string;
-  telefono: string;
+  domicilio?: string;
+  telefono?: string;
   correo: string;
   rol: string;
   nivel_acceso?: number;
